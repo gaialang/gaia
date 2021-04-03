@@ -1,3 +1,7 @@
 ﻿using System;
+using Gaia.Lex;
+using Gaia.Parse;
 
-Console.WriteLine("Hello World!");
+var lexer = new Lexer();
+var parser = new Parser(lexer);
+parser.Run();
