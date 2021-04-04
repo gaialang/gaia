@@ -17,7 +17,7 @@ namespace Gaia.Parse {
         }
 
         public void Run() {
-            Block();
+            Package();
             Console.WriteLine("OK");
         }
 
@@ -26,7 +26,7 @@ namespace Gaia.Parse {
         }
 
         public void Error(string s) {
-            throw new SyntaxErrorException($"Near line {Lexer.Line} position {Lexer.Pos}: {s}");
+            throw new SyntaxErrorException($"Near line {Lexer.Line} position {Lexer.Pos}: {s}.");
         }
 
         /// <summary>
@@ -42,15 +42,36 @@ namespace Gaia.Parse {
             }
         }
 
-        public void Block() {
-            // match('{');
+        public void Package() {
+            if (look.Tag != Tag.Package) {
+                Error("expected package");
+            }
+
             var savedEnv = top;
             top = new Env(top);
+
+            Match(Tag.Package);
+            var tok = look;
+            Match(Tag.Id);
+            var id = new Id(tok as Word, Symbols.Type.Null, used);
+            top?.Add(tok, id);
+            used += Symbols.Type.Null.Width;
+            var p = new Pkg(id);
+            Match(Tag.Semicolon);
+            Console.WriteLine(p.ToString());
+
             Decls();
             var s = Stmts();
-            // match('}');
+
             top = savedEnv;
-            // return s;
+        }
+
+        public Stmt Block() {
+            Match('{');
+            Decls();
+            var s = Stmts();
+            Match('}');
+            return s;
         }
 
         public Stmt Stmts() {

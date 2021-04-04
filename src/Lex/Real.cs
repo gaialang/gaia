@@ -1,12 +1,12 @@
 ﻿namespace Gaia.Lex {
     public class Real : Token {
-        public readonly float Value;
+        public readonly double Value;
 
-        public Real(float v) : base(Lex.Tag.Num) {
+        public Real(double v) : base(Lex.Tag.Num) {
             Value = v;
         }
 
-        public new string ToString() {
+        public override string ToString() {
             return Value.ToString();
         }
     }

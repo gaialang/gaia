@@ -9,5 +9,6 @@
         public const int Real = 262;
         public const int Semicolon = 263;
         public const int Eof = 264;
+        public const int Package = 265;
     }
 }

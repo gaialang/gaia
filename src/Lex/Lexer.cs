@@ -19,7 +19,8 @@ namespace Gaia.Lex {
         }
 
         public Lexer() {
-            Reserve(new Word("var", Tag.Var));
+            Reserve(Word.Var);
+            Reserve(Word.Package);
 
             Reserve(Type.Int);
 
@@ -66,8 +67,8 @@ namespace Gaia.Lex {
                     return new Num(v);
                 }
 
-                float x = v;
-                float d = 10;
+                double x = v;
+                double d = 10;
 
                 while (true) {
                     ReadChar();
@@ -75,7 +76,7 @@ namespace Gaia.Lex {
                         break;
                     }
 
-                    x += float.Parse(peek.ToString()) / 10;
+                    x += double.Parse(peek.ToString()) / 10;
                     d *= 10;
                 }
 
@@ -90,8 +91,9 @@ namespace Gaia.Lex {
                 } while (char.IsLetterOrDigit(peek));
 
                 var s = b.ToString();
-                if (words.ContainsKey(s)) {
-                    return words[s];
+
+                if (words.TryGetValue(s, out var value)) {
+                    return value;
                 }
 
                 var w = new Word(s, Tag.Id);
