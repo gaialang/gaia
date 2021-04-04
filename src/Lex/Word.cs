@@ -1,9 +1,9 @@
 ﻿namespace Gaia.Lex {
     public class Word : Token {
         public readonly string Lexeme;
-        public static readonly Word Var = new("var", Tag.Var);
+        public static readonly Word Var = new("var", Lex.Tag.Var);
 
-        public Word(string s, Tag tag) : base(tag) {
+        public Word(string s, int tag) : base(tag) {
             Lexeme = s;
         }
 

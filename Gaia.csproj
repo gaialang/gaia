@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="LLVMSharp" Version="11.0.0-beta" />
-        <Content Include="src/var.gaia">
+        <PackageReference Include="LLVMSharp" Version="11.0.0-beta"/>
+        <Content Include="src/test.gaia">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
         </Content>

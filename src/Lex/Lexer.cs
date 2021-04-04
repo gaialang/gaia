@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using Gaia.Symbols;
+using Type = Gaia.Symbols.Type;
 
 namespace Gaia.Lex {
     public class Lexer {
-        public static int Line { get; set; } = 1;
+        public static int Line { get; private set; } = 1;
+        public static int Pos { get; private set; } = 0;
 
         private StreamReader source;
-        private int pos = 0;
         private char peek = ' ';
         private Dictionary<string, Word> words = new();
 
@@ -21,13 +21,9 @@ namespace Gaia.Lex {
         public Lexer() {
             Reserve(new Word("var", Tag.Var));
 
-            Reserve(Typ.Int);
+            Reserve(Type.Int);
 
-            ReadSource();
-        }
-
-        public void ReadSource() {
-            source = new StreamReader(AppContext.BaseDirectory + "src/var.gaia");
+            source = new StreamReader(AppContext.BaseDirectory + "src/test.gaia");
         }
 
         public Token Scan() {
@@ -35,8 +31,10 @@ namespace Gaia.Lex {
                 if (peek == ' ' || peek == '\t') {
                     continue;
                 }
-                else if (peek == '\n') {
+
+                if (peek == '\n') {
                     Line++;
+                    Pos = 0;
                 }
                 else {
                     break;
@@ -57,9 +55,8 @@ namespace Gaia.Lex {
                 break;
             }
 
-            /*
             if (char.IsDigit(peek)) {
-                int v = 0;
+                var v = 0;
                 do {
                     v = 10 * v + int.Parse(peek.ToString());
                     ReadChar();
@@ -72,18 +69,18 @@ namespace Gaia.Lex {
                 float x = v;
                 float d = 10;
 
-                for (;;) {
-                    readch();
-                    if (!Character.isDigit(peek)) {
+                while (true) {
+                    ReadChar();
+                    if (!char.IsDigit(peek)) {
                         break;
                     }
-                    x = x + Character.digit(peek, 10) / 10;
-                    d = d * 10;
+
+                    x += float.Parse(peek.ToString()) / 10;
+                    d *= 10;
                 }
 
                 return new Real(x);
             }
-            */
 
             if (char.IsLetter(peek)) {
                 var b = new StringBuilder();
@@ -102,13 +99,14 @@ namespace Gaia.Lex {
                 return w;
             }
 
-            var tok = new Token(Tag.Unknown);
+            var tok = new Token(Tag.Eof);
             peek = ' ';
             return tok;
         }
 
         private void ReadChar() {
             peek = (char) source.Read();
+            Pos++;
         }
     }
 }

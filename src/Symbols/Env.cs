@@ -17,9 +17,8 @@ namespace Gaia.Symbols {
 
         public Id? Get(Token w) {
             for (var e = this; e is not null; e = e.prev) {
-                var found = e.table[w];
-                if (found is null) {
-                    return found;
+                if (e.table.TryGetValue(w, out var value)) {
+                    return value;
                 }
             }
 

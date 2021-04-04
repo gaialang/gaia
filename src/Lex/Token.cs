@@ -1,13 +1,14 @@
 ﻿namespace Gaia.Lex {
     public class Token {
-        public readonly Tag Tag;
+        public static readonly Token Null = new(0);
+        public readonly int Tag;
 
-        public Token(Tag t) {
+        public Token(int t) {
             Tag = t;
         }
 
         public new string ToString() {
-            return "" + (char) Tag;
+            return Tag.ToString();
         }
     }
 }

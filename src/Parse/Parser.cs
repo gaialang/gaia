@@ -8,8 +8,8 @@ namespace Gaia.Parse {
     public class Parser {
         private Lexer lexer;
         private Token look;
-        Env? top;
-        int used = 0;
+        private Env? top;
+        private int used = 0;
 
         public Parser(Lexer l) {
             lexer = l;
@@ -26,10 +26,14 @@ namespace Gaia.Parse {
         }
 
         public void Error(string s) {
-            throw new SyntaxErrorException($"Near line {Lexer.Line}: {s}");
+            throw new SyntaxErrorException($"Near line {Lexer.Line} position {Lexer.Pos}: {s}");
         }
 
-        public void Match(Tag t) {
+        /// <summary>
+        ///     Match and move to next token
+        /// </summary>
+        /// <param name="t"></param>
+        public void Match(int t) {
             if (look.Tag == t) {
                 Move();
             }
@@ -43,18 +47,67 @@ namespace Gaia.Parse {
             var savedEnv = top;
             top = new Env(top);
             Decls();
-            // var s = Stmts();
+            var s = Stmts();
             // match('}');
             top = savedEnv;
             // return s;
         }
 
         public Stmt Stmts() {
-            return new Seq(Stmt(), Stmts());
+            if (look.Tag == Tag.Eof) {
+                return Inter.Stmt.Null;
+            }
+            else {
+                return new Seq(Stmt(), Stmts());
+            }
         }
 
         public Stmt Stmt() {
-            return new Stmt();
+            Expr x;
+            Stmt s, s1, s2;
+            Stmt savedStmt;
+
+            switch (look.Tag) {
+            case Tag.Semicolon:
+                Move();
+                return Inter.Stmt.Null;
+            case Tag.Id:
+                return Assign();
+            default:
+                return Inter.Stmt.Null;
+            }
+        }
+
+        public Stmt Assign() {
+            var stmt = Inter.Stmt.Null;
+            var t = look;
+            Match(Lex.Tag.Id);
+            var id = top?.Get(t);
+            if (id is null) {
+                Error($"{id} undeclared");
+            }
+
+            if (look.Tag == Tag.Assign) {
+                Move();
+                stmt = new Set(id, Factor());
+            }
+
+            Match(Tag.Semicolon);
+
+            return stmt;
+        }
+
+        public Expr Factor() {
+            var x = Expr.Null;
+            switch (look.Tag) {
+            case Tag.Num:
+                x = new Constant(look, Symbols.Type.Int);
+                Move();
+                return x;
+            default:
+                Error("syntax error");
+                return x;
+            }
         }
 
         public void Decls() {
@@ -62,8 +115,8 @@ namespace Gaia.Parse {
                 // TODO: Initial move can be deleted
                 Move();
 
-                Match(Tag.Id);
                 var tok = look;
+                Match(Tag.Id);
                 Match(Tag.Colon);
                 var p = Type();
                 Match(Tag.Semicolon);
@@ -73,8 +126,8 @@ namespace Gaia.Parse {
             }
         }
 
-        public Typ Type() {
-            var p = look as Typ;
+        public Symbols.Type Type() {
+            var p = look as Symbols.Type;
             if (p is null) {
                 throw new InvalidCastException("Type cast failed");
             }
