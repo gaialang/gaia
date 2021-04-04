@@ -7,7 +7,7 @@
             Tag = t;
         }
 
-        public new string ToString() {
+        public override string ToString() {
             return Tag.ToString();
         }
     }

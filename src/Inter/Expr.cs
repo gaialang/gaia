@@ -13,7 +13,7 @@ namespace Gaia.Inter {
             Type = p;
         }
 
-        public new string ToString() {
+        public override string ToString() {
             return Op.ToString();
         }
     }
