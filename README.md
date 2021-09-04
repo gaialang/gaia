@@ -12,9 +12,9 @@ And whenever you encounter a bug, you can shout out:
 
 Pretty cool, right?
 
-I believe that the most personal is the most creative. Thus `Gaia` will be very personal at first. It's a C variant, a
-little language that looks like `C` and runs like `C`. It will have `C`/`LLVM` as backend, and I'll use `LLVMSharp` to
-generate `LLIR`. And it's just a beginning. Wish me luck~
+I believe that the most personal is the most creative. Thus `Gaia` will be a very personal project at first. It's a `C`
+variant, a little language that looks like `C` and runs like `C`. It'll have `C`/`LLVM` as backend, and will
+generate `C` code or generate `LLIR` using `LLVMSharp`. And it's just a beginning. Wish me luck~
 
 ## Getting Started
 
