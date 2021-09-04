@@ -6,7 +6,7 @@ namespace Gaia.Inter {
         // Relative address
         public int Offset { get; }
 
-        public Id(Word id, Type p, int b) : base(id, p) {
+        public Id(Word id, Typ p, int b) : base(id, p) {
             Offset = b;
         }
     }

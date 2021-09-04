@@ -5,20 +5,20 @@ namespace Gaia.Inter {
         public readonly Id Id;
         public readonly Expr Expr;
 
-        public Set(Id i, Expr x) {
-            Id = i;
-            Expr = x;
-            if (Check(Id.Type, Expr.Type) is null) {
+        public Set(Id id, Expr expr) {
+            Id = id;
+            Expr = expr;
+            if (Check(Id.Typ, Expr.Typ) is null) {
                 Error("type error");
             }
         }
 
-        public Type? Check(Type p1, Type p2) {
-            if (Type.Numeric(p1) && Type.Numeric(p2)) {
+        public Typ? Check(Typ p1, Typ p2) {
+            if (Typ.Numeric(p1) && Typ.Numeric(p2)) {
                 return p2;
             }
 
-            if (p1 == Type.Bool && p2 == Type.Bool) {
+            if (p1 == Typ.Bool && p2 == Typ.Bool) {
                 return p2;
             }
 

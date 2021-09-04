@@ -3,14 +3,14 @@ using Gaia.Symbols;
 
 namespace Gaia.Inter {
     public class Expr : Node {
-        public static readonly Expr Null = new(Token.Null, Type.Null);
+        public static readonly Expr Null = new(Token.Null, Typ.Null);
 
         public readonly Token Op;
-        public readonly Type Type;
+        public readonly Typ Typ;
 
-        public Expr(Token tok, Type p) {
+        public Expr(Token tok, Typ p) {
             Op = tok;
-            Type = p;
+            Typ = p;
         }
 
         public override string ToString() {

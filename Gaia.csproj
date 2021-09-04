@@ -1,18 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
-        <LangVersion>9.0</LangVersion>
+        <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="LLVMSharp" Version="11.0.0-beta"/>
-        <Content Include="src/test.gaia">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-        </Content>
+      <None Include="src\data\test.ga">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </None>
     </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-﻿# Gaia programming language
+﻿# Gaia Programming Language
 
 `Gaia` is pronounced as /ˈgaiə/. I like the sound of that yeah. Imagine having this conversation:
 
@@ -13,10 +13,10 @@ And whenever you encounter a bug, you can shout out:
 Pretty cool, right?
 
 I believe that the most personal is the most creative. Thus `Gaia` will be very personal at first. It's a C variant, a
-little language that looks like `C` and runs like `C`. It has `LLVM` as back-end, and I use `LLVMSharp` to generate the
-IR. And it's just a beginning. Wish me luck~
+little language that looks like `C` and runs like `C`. It will have `C`/`LLVM` as backend, and I'll use `LLVMSharp` to
+generate `LLIR`. And it's just a beginning. Wish me luck~
 
-## Getting started
+## Getting Started
 
 1. make sure you have .NET 5.0 or above installed.
 2. run `dotnet run`.

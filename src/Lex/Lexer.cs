@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Gaia.Symbols;
-using Type = Gaia.Symbols.Type;
 
 namespace Gaia.Lex {
     public class Lexer {
@@ -21,10 +20,12 @@ namespace Gaia.Lex {
         public Lexer() {
             Reserve(Word.Var);
             Reserve(Word.Package);
+            Reserve(Word.Func);
+            Reserve(Word.Ret);
 
-            Reserve(Type.Int);
+            Reserve(Typ.Int);
 
-            source = new StreamReader(AppContext.BaseDirectory + "src/test.gaia");
+            source = new StreamReader(AppContext.BaseDirectory + "src/data/test.ga");
         }
 
         public Token Scan() {
@@ -52,6 +53,18 @@ namespace Gaia.Lex {
             case ';':
                 peek = ' ';
                 return new Token(Tag.Semicolon);
+            case '(':
+                peek = ' ';
+                return new Token(Tag.LParen);
+            case ')':
+                peek = ' ';
+                return new Token(Tag.RParen);
+            case '{':
+                peek = ' ';
+                return new Token(Tag.LBrac);
+            case '}':
+                peek = ' ';
+                return new Token(Tag.RBrac);
             default:
                 break;
             }
@@ -64,7 +77,7 @@ namespace Gaia.Lex {
                 } while (char.IsDigit(peek));
 
                 if (peek != '.') {
-                    return new Num(v);
+                    return new Int(v);
                 }
 
                 double x = v;
@@ -80,7 +93,7 @@ namespace Gaia.Lex {
                     d *= 10;
                 }
 
-                return new Real(x);
+                return new Float64(x);
             }
 
             if (char.IsLetter(peek)) {
@@ -101,13 +114,13 @@ namespace Gaia.Lex {
                 return w;
             }
 
-            var tok = new Token(Tag.Eof);
+            var tok = new Token(Tag.EOF);
             peek = ' ';
             return tok;
         }
 
         private void ReadChar() {
-            peek = (char) source.Read();
+            peek = (char)source.Read();
             Pos++;
         }
     }

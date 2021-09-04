@@ -1,8 +1,8 @@
 ﻿namespace Gaia.Lex {
-    public class Num : Token {
-        public readonly int Value;
+    public class Float64 : Token {
+        public readonly double Value;
 
-        public Num(int v) : base(Lex.Tag.Num) {
+        public Float64(double v) : base(Lex.Tag.Int) {
             Value = v;
         }
 
