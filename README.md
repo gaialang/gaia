@@ -18,5 +18,5 @@ generate `C` code or generate `LLIR` using `LLVMSharp`. And it's just a beginnin
 
 ## Getting Started
 
-1. make sure you have .NET 5.0 or above installed.
+1. make sure you have .NET 6.0 or above installed.
 2. run `dotnet run`.

@@ -1,0 +1,13 @@
+package main;
+
+var a: int;
+var b: int;
+
+a=1;
+b=2;
+
+func foo(x: int): int {
+    var c: int;
+    c=1;
+    return c;
+}

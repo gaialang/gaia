@@ -1,15 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>Gaia</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-      <None Include="src\data\test.ga">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      </None>
+        <Content Include="tests\test.ga">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        </Content>
     </ItemGroup>
 </Project>

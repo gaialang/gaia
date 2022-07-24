@@ -1,13 +1,13 @@
-﻿namespace Gaia.Inter {
-    public class Pkg : Stmt {
-        public readonly Id Id;
+﻿namespace Gaia.Inter;
 
-        public Pkg(Id id) {
-            Id = id;
-        }
+public class Pkg : Stmt {
+    public readonly Id Id;
 
-        public override string ToString() {
-            return Id.ToString();
-        }
+    public Pkg(Id id) {
+        Id = id;
+    }
+
+    public override string ToString() {
+        return Id.ToString();
     }
 }

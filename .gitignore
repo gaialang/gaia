@@ -3,10 +3,11 @@
 .idea/
 .vs/
 
-# Compiled files
+# Compiled
 bin/
 obj/
 
-# User-specific files
-*.user
+# User-specific
+*.DotSettings
+*.DotSettings.user
 global.json

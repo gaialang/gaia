@@ -1,5 +1,4 @@
-﻿using System;
-using Gaia.Lex;
+﻿using Gaia.Lex;
 using Gaia.Parse;
 
 Console.WriteLine("Gaia >");

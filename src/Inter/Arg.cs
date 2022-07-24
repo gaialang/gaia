@@ -1,8 +1,8 @@
-﻿using Gaia.Symbols;
+﻿namespace Gaia.Inter;
 
-namespace Gaia.Inter {
-    public class Arg {
-        public Id Id;
-        public Typ Typ;
-    }
+using Gaia.Symbols;
+
+public class Arg {
+    public Id Id;
+    public Typ Typ;
 }

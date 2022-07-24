@@ -1,18 +1,18 @@
-﻿namespace Gaia.Lex {
-    public class Word : Token {
-        public readonly string Lexeme;
+﻿namespace Gaia.Lex;
 
-        public static readonly Word Var = new("var", Lex.Tag.Var);
-        public static readonly Word Package = new("package", Lex.Tag.Pkg);
-        public static readonly Word Func = new("func", Lex.Tag.Func);
-        public static readonly Word Ret = new("return", Lex.Tag.Ret);
+public class Word : Token {
+    public readonly string Lexeme;
 
-        public Word(string s, int tag) : base(tag) {
-            Lexeme = s;
-        }
+    public static readonly Word Var = new("var", Lex.Tag.Var);
+    public static readonly Word Package = new("package", Lex.Tag.Pkg);
+    public static readonly Word Func = new("func", Lex.Tag.Func);
+    public static readonly Word Ret = new("return", Lex.Tag.Ret);
 
-        public override string ToString() {
-            return Lexeme;
-        }
+    public Word(string s, int tag) : base(tag) {
+        Lexeme = s;
+    }
+
+    public override string ToString() {
+        return Lexeme;
     }
 }

@@ -1,13 +1,13 @@
-﻿namespace Gaia.Lex {
-    public class Int : Token {
-        public readonly int Value;
+﻿namespace Gaia.Lex;
 
-        public Int(int v) : base(Lex.Tag.Int) {
-            Value = v;
-        }
+public class Int : Token {
+    public readonly int Value;
 
-        public override string ToString() {
-            return Value.ToString();
-        }
+    public Int(int v) : base(Lex.Tag.Int) {
+        Value = v;
+    }
+
+    public override string ToString() {
+        return Value.ToString();
     }
 }

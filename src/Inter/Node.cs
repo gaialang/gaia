@@ -1,10 +1,10 @@
-﻿using System.Data;
+﻿namespace Gaia.Inter;
+
+using System.Data;
 using Gaia.Lex;
 
-namespace Gaia.Inter {
-    public class Node {
-        protected static void Error(string s) {
-            throw new SyntaxErrorException($"Near line {Lexer.Line} position {Lexer.Pos}: {s}.");
-        }
+public class Node {
+    public static void Error(string s) {
+        throw new SyntaxErrorException($"Near line {Lexer.Line} position {Lexer.Pos}: {s}.");
     }
 }
