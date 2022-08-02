@@ -28,4 +28,6 @@ public class Tag {
     public const int NE = 280;
     public const int LE = 281;
     public const int GE = 282;
+    public const int Index = 283;
+    public const int Minus = 284;
 }

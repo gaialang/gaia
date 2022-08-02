@@ -88,6 +88,7 @@ public class Parser {
         return s;
     }
 
+    // TODO:
     public Function Func() {
         if (look.Tag != Tag.Func) {
             Error("Expected func.");
@@ -262,8 +263,8 @@ public class Parser {
 
             var tok = look;
             Match(Tag.Id);
-            var p = GetTyp();
             Match(Tag.Colon);
+            var p = GetTyp();
             Match(Tag.Semicolon);
             var id = new Id((Word)tok, p, used);
             top?.Add(tok, id);
@@ -316,7 +317,7 @@ public class Parser {
         Match('[');
         i = Bool();
         Match(']');
-        type = ((Array)type).Of;
+        type = ((Arr)type).Of;
         w = new Constant(type.Width);
         t1 = new Arith(new Token('*'), i, w);
         loc = t1;
