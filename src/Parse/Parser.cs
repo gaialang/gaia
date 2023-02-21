@@ -20,7 +20,6 @@ public class Parser {
 
     public void Run() {
         Package();
-        Console.WriteLine("OK.");
     }
 
     public void Move() {
@@ -38,8 +37,7 @@ public class Parser {
     public void Match(int t) {
         if (look.Tag == t) {
             Move();
-        }
-        else {
+        } else {
             Error("Syntax error.");
         }
     }
@@ -56,7 +54,7 @@ public class Parser {
         Match(Tag.Pkg);
         var tok = look;
         Match(Tag.Id);
-        var id = new Id((Word)tok, Typ.Pkg, used);
+        var id = new Id(tok, Typ.Pkg, used);
         top?.Add(tok, id);
         used += Typ.Pkg.Width;
         Match(Tag.Semicolon);
@@ -97,14 +95,16 @@ public class Parser {
         var savedEnv = top;
         top = new Env(top);
         Match(Tag.Func);
-        var tok = look;
         Match(Tag.Id);
 
-        var funcName = new Id((Word)tok, Typ.Func, used);
+        var tok = look;
+        var funcName = new Id(tok, Typ.Func, used);
         top?.Add(tok, funcName);
         used += Typ.Func.Width;
 
+        Match(Tag.LParen);
         var args = Args();
+        Match(Tag.RParen);
 
         Match(Tag.Colon);
         Match(Tag.Int);
@@ -117,18 +117,15 @@ public class Parser {
     public List<Id> Args() {
         var argsList = new List<Id>();
 
-        Match(Tag.LParen);
-
         var tok = look;
         Match(Tag.Id);
-        var id = new Id((Word)tok, Typ.Int, used);
+        var id = new Id(tok, Typ.Int, used);
         top?.Add(tok, id);
         used += Typ.Int.Width;
         argsList.Add(id);
 
         Match(Tag.Colon);
         Match(Tag.Int);
-        Match(Tag.RParen);
 
         return argsList;
     }
@@ -137,8 +134,7 @@ public class Parser {
         // TODO: Fix exit conditions
         if (look.Tag == Tag.Func || look.Tag == Tag.EOF || look.Tag == Tag.Ret) {
             return Inter.Stmt.Null;
-        }
-        else {
+        } else {
             return new Seq(Stmt(), Stmts());
         }
     }
@@ -266,7 +262,7 @@ public class Parser {
             Match(Tag.Colon);
             var p = GetTyp();
             Match(Tag.Semicolon);
-            var id = new Id((Word)tok, p, used);
+            var id = new Id(tok, p, used);
             top?.Add(tok, id);
             used += p.Width;
         }
@@ -297,13 +293,11 @@ public class Parser {
         if (look.Tag == '-') {
             Move();
             return new Unary(Word.Minus, Unary());
-        }
-        else if (look.Tag == '!') {
+        } else if (look.Tag == '!') {
             var tok = look;
             Move();
             return new Not(tok, Unary());
-        }
-        else {
+        } else {
             return Factor();
         }
     }

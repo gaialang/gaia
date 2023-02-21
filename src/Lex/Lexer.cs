@@ -21,10 +21,10 @@ public class Lexer {
     public Lexer() {
         Reserve(Word.Var);
         Reserve(Word.Package);
-        Reserve(Word.Func);
         Reserve(Word.Ret);
 
         Reserve(Typ.Int);
+        Reserve(Typ.Func);
 
         source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
     }
@@ -38,8 +38,7 @@ public class Lexer {
             if (peek == '\n') {
                 Line++;
                 Pos = 0;
-            }
-            else {
+            } else {
                 break;
             }
         }

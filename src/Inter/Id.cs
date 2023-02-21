@@ -7,7 +7,7 @@ public class Id : Expr {
     // Relative address
     public int Offset { get; }
 
-    public Id(Word id, Typ p, int b) : base(id, p) {
+    public Id(Token id, Typ p, int b) : base(id, p) {
         Offset = b;
     }
 }

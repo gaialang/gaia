@@ -11,6 +11,8 @@ public class Typ : Word {
     public static readonly Typ Char = new("char", Lex.Tag.Char, 1);
     public static readonly Typ Bool = new("bool", Lex.Tag.Bool, 1);
     public static readonly Typ Pkg = new("package", Lex.Tag.Pkg, 4);
+
+    // TODO: should func have a width?
     public static readonly Typ Func = new("func", Lex.Tag.Func, 4);
 
     public Typ(string s, int tag, int w) : base(s, tag) {
@@ -20,8 +22,7 @@ public class Typ : Word {
     public static bool Numeric(Typ p) {
         if (p == Char || p == Int || p == Float64) {
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
