@@ -1,13 +1,20 @@
-﻿namespace Gaia.Lex;
+namespace Gaia.Lex;
 
 // Reserved words
 public class Word : Token {
     public readonly string Lexeme;
 
-    public static readonly Word Var = new("var", Lex.Tag.Var);
-    public static readonly Word Package = new("package", Lex.Tag.Pkg);
-    public static readonly Word Ret = new("return", Lex.Tag.Ret);
-    public static readonly Word Minus = new("-", Lex.Tag.Minus);
+    // minus is different from subtraction.
+    public static readonly Word And = new Word("&&", Lex.Tag.And),
+        Or = new Word("||", Lex.Tag.Or),
+        Eq = new Word("==", Lex.Tag.Eq),
+        Ne = new Word("!=", Lex.Tag.Ne),
+        Le = new Word("<=", Lex.Tag.Le),
+         Ge = new Word(">=", Lex.Tag.Ge),
+        Minus = new Word("minus", Lex.Tag.Minus),
+        True = new Word("true", Lex.Tag.True),
+        False = new Word("false", Lex.Tag.False),
+        temp = new Word("t", Lex.Tag.Temp);
 
     public Word(string s, int tag) : base(tag) {
         Lexeme = s;

@@ -3,7 +3,7 @@
 public class Float64 : Token {
     public readonly double Value;
 
-    public Float64(double v) : base(Lex.Tag.Int) {
+    public Float64(double v) : base(Lex.Tag.Real) {
         Value = v;
     }
 

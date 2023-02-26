@@ -7,7 +7,7 @@ public class Access : Op {
     public Id array;
     public Expr index;
 
-    public Access(Id a, Expr i, Typ p) : base(new Word("[]", Tag.Index), p) {
+    public Access(Id a, Expr i, Typing p) : base(new Word("[]", Tag.Index), p) {
         array = a;
         index = i;
     }

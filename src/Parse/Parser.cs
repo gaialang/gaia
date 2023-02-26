@@ -38,13 +38,13 @@ public class Parser {
         if (look.Tag == t) {
             Move();
         } else {
-            Error("Syntax error.");
+            Error($"token {look} != {t}");
         }
     }
 
     public void Package() {
         if (look.Tag != Tag.Pkg) {
-            Error("Expected package.");
+            Error("Expected package");
         }
 
         var savedEnv = top;
@@ -54,23 +54,23 @@ public class Parser {
         Match(Tag.Pkg);
         var tok = look;
         Match(Tag.Id);
-        var id = new Id(tok, Typ.Pkg, used);
+        var id = new Id(tok, Typing.Pkg, used);
         top?.Add(tok, id);
-        used += Typ.Pkg.Width;
-        Match(Tag.Semicolon);
+        used += Typing.Pkg.Width;
+        Match(';');
 
-        Decls();
+        VarDecls();
         var s = Stmts();
-        var f = Func();
+        var f = FuncDecl();
 
         var p = new Pkg(id);
         top = savedEnv;
     }
 
-    public Stmt FuncBlock() {
-        Match(Tag.LBrac);
-        Decls();
+    public Stmt Block() {
+        Match('{');
 
+        VarDecls();
         var s = Stmts();
         Match(Tag.Ret);
         var t = look;
@@ -78,18 +78,18 @@ public class Parser {
 
         var id = top?.Get(t);
         if (id is null) {
-            Error($"{id} undeclared.");
+            Error($"{id} undeclared");
         }
 
-        Match(Tag.Semicolon);
-        Match(Tag.RBrac);
+        Match(';');
+        Match('}');
         return s;
     }
 
     // TODO:
-    public Function Func() {
+    public Function FuncDecl() {
         if (look.Tag != Tag.Func) {
-            Error("Expected func.");
+            Error("func expected");
         }
 
         var savedEnv = top;
@@ -98,43 +98,52 @@ public class Parser {
         Match(Tag.Id);
 
         var tok = look;
-        var funcName = new Id(tok, Typ.Func, used);
+        var funcName = new Id(tok, Typing.Func, used);
         top?.Add(tok, funcName);
-        used += Typ.Func.Width;
+        used += Typing.Func.Width;
 
-        Match(Tag.LParen);
-        var args = Args();
-        Match(Tag.RParen);
+        Match('(');
+        var args = ArgList();
+        Match(')');
 
-        Match(Tag.Colon);
-        Match(Tag.Int);
-
-        var stmt = FuncBlock();
-
-        return new Function(funcName, args, Typ.Int, stmt);
+        var retType = ReturnType();
+        var stmt = Block();
+        return new Function(funcName, args, Typing.Int, stmt);
     }
 
-    public List<Id> Args() {
+    public Typing ReturnType() {
+        if (look.Tag != ':') {
+            return Typing.Nil;
+        }
+        Match(':');
+        var p = GetTyping();
+        return p;
+    }
+
+    public List<Id> ArgList() {
         var argsList = new List<Id>();
 
         var tok = look;
         Match(Tag.Id);
-        var id = new Id(tok, Typ.Int, used);
-        top?.Add(tok, id);
-        used += Typ.Int.Width;
-        argsList.Add(id);
+        Match(':');
+        var p = GetTyping();
 
-        Match(Tag.Colon);
-        Match(Tag.Int);
+        var id = new Id(tok, p, used);
+        top?.Add(tok, id);
+        used += Typing.Int.Width;
+        argsList.Add(id);
 
         return argsList;
     }
 
     public Stmt Stmts() {
-        // TODO: Fix exit conditions
-        if (look.Tag == Tag.Func || look.Tag == Tag.EOF || look.Tag == Tag.Ret) {
+        switch (look.Tag) {
+        case Tag.Func:
+        case Tag.Ret:
+        case '}':
+        case Tag.Eof:
             return Inter.Stmt.Null;
-        } else {
+        default:
             return new Seq(Stmt(), Stmts());
         }
     }
@@ -145,7 +154,7 @@ public class Parser {
         Stmt savedStmt;
 
         switch (look.Tag) {
-        case Tag.Semicolon:
+        case ';':
             Move();
             return Inter.Stmt.Null;
         case Tag.If:
@@ -158,10 +167,40 @@ public class Parser {
             Match(Tag.Else);
             s2 = Stmt();
             return new Else(x, s1, s2);
-        case Tag.Id:
-            return Assign();
+        // case Tag.While:
+        //         var whilenode = new While();
+        //         savedStmt = Stmt.Enclosing;
+        //         Stmt.Enclosing = whilenode;
+        //         match(Tag.WHILE);
+        //         match('(');
+        //         x = bool();
+        //         match(')');
+        //         s1 = stmt();
+        //         whilenode.init(x, s1);
+        //         Stmt.Enclosing = savedStmt;
+        //         return whilenode;
+        //     case Tag.DO:
+        //         var donode = new Do();
+        //         savedStmt = Stmt.Enclosing;
+        //         Stmt.Enclosing = donode;
+        //         match(Tag.DO);
+        //         s1 = stmt();
+        //         match(Tag.WHILE);
+        //         match('(');
+        //         x = bool();
+        //         match(')');
+        //         match(';');
+        //         donode.init(s1, x);
+        //         Stmt.Enclosing = savedStmt;
+        //         return donode;
+        // case Tag.BREAK:
+        //         match(Tag.BREAK);
+        //         match(';');
+        //         return new Break();
+        case '{':
+            return Block();
         default:
-            return Inter.Stmt.Null;
+            return Assign();
         }
     }
 
@@ -187,7 +226,7 @@ public class Parser {
 
     public Expr Equality() {
         var x = Rel();
-        while (look.Tag == Tag.EQ || look.Tag == Tag.NE) {
+        while (look.Tag == Tag.Eq || look.Tag == Tag.Ne) {
             var tok = look;
             Move();
             x = new Rel(tok, x, Rel());
@@ -199,8 +238,8 @@ public class Parser {
         var x = Expr();
         switch (look.Tag) {
         case '<':
-        case Tag.LE:
-        case Tag.GE:
+        case Tag.Le:
+        case Tag.Ge:
         case '>':
             var tok = look;
             Move();
@@ -226,56 +265,53 @@ public class Parser {
         Match(Tag.Id);
         var id = top?.Get(t);
         if (id is null) {
-            Error($"{id} undeclared.");
+            Error($"{t} undeclared");
         }
-
-        if (look.Tag == Tag.Assign) {
+        if (look.Tag == '=') {
             Move();
-            stmt = new Set(id!, Factor());
+            stmt = new Set(id!, Bool());
         }
 
-        Match(Tag.Semicolon);
-
+        Match(';');
         return stmt;
     }
 
-    public Expr? Factor() {
-        Inter.Expr? x = null;
+    public Expr Factor() {
+        Inter.Expr x;
         switch (look.Tag) {
-        case Tag.Int:
-            x = new Constant(look, Typ.Int);
+        case Tag.Num:
+            x = new Constant(look, Typing.Int);
             Move();
             return x;
         default:
-            Error("Syntax error.");
-            return x;
+            Error("Syntax error");
+            return null;
         }
     }
 
-    public void Decls() {
+    public void VarDecls() {
+        // TODO: Initial move can be moved to another place
         while (look.Tag == Tag.Var) {
-            // TODO: Initial move can be moved to another place
             Move();
-
             var tok = look;
             Match(Tag.Id);
-            Match(Tag.Colon);
-            var p = GetTyp();
-            Match(Tag.Semicolon);
+            Match(':');
+            var p = GetTyping();
+            Match(';');
             var id = new Id(tok, p, used);
             top?.Add(tok, id);
             used += p.Width;
         }
     }
 
-    public Typ GetTyp() {
-        var p = look as Typ;
+    // Get a type for the variable.
+    public Typing GetTyping() {
+        var p = look as Typing;
         if (p is null) {
             throw new InvalidCastException("Type cast failed.");
         }
 
-        Match(Tag.Int);
-
+        Match(Tag.Basic);
         return p;
     }
 

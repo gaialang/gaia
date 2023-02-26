@@ -1,33 +1,32 @@
-﻿namespace Gaia.Lex;
+namespace Gaia.Lex;
 
-public class Tag {
-    public const int Assign = 256;
-    public const int Basic = 257;
-    public const int Colon = 258;
-    public const int Id = 259;
-    public const int Int = 260;
-    public const int Var = 261;
-    public const int Float32 = 262;
-    public const int Semicolon = 263;
-    public const int EOF = 264;
-    public const int Pkg = 265;
-    public const int Func = 266;
-    public const int LParen = 267;
-    public const int RParen = 268;
-    public const int LBrac = 269;
-    public const int RBrac = 270;
-    public const int Float64 = 271;
-    public const int Char = 272;
-    public const int Bool = 273;
-    public const int Ret = 274;
-    public const int If = 275;
-    public const int Else = 276;
-    public const int Or = 277;
-    public const int And = 278;
-    public const int EQ = 279;
-    public const int NE = 280;
-    public const int LE = 281;
-    public const int GE = 282;
-    public const int Index = 283;
-    public const int Minus = 284;
+public static class Tag {
+    public const int And = 256,
+        // Basic types.
+        Basic = 257,
+        Break = 258,
+        Loop = 259,
+        Else = 260,
+        Eq = 261,
+        False = 262,
+        Ge = 263,
+        Id = 264,
+        If = 265,
+        Index = 266,
+        Le = 267,
+        Minus = 268,
+        Ne = 269,
+        Num = 270,
+        Or = 271,
+        Real = 272,
+        Temp = 273,
+        True = 274,
+        While = 275,
+
+        Pkg = 276,
+        Ret = 277,
+        Nil = 278,
+        Var = 279,
+        Func = 280,
+        Eof = 281;
 }

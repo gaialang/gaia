@@ -8,6 +8,7 @@ public class Token {
     }
 
     public override string ToString() {
-        return Tag.ToString();
+        var ch = (char)Tag;
+        return $"{ch}";
     }
 }

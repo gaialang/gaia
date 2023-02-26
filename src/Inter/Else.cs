@@ -10,7 +10,7 @@ public class Else : Stmt {
         expr = x;
         stmt1 = s1;
         stmt2 = s2;
-        if (expr.Typ != Typ.Bool) {
+        if (expr.Typ != Typing.Bool) {
             Node.Error("boolean required in if");
         }
     }

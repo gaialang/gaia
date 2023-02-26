@@ -12,30 +12,40 @@ public class Lexer {
 
     private StreamReader source;
     private char peek = ' ';
+    private bool ended = false;
     private Dictionary<string, Word> words = new();
+
+    public Lexer() {
+        Reserve(new Word("var", Tag.Var));
+        Reserve(new Word("package", Tag.Pkg));
+        Reserve(new Word("return", Tag.Ret));
+        Reserve(new Word("func", Tag.Func));
+
+        Reserve(Word.True);
+        Reserve(Word.False);
+
+        Reserve(Typing.Int);
+        Reserve(Typing.Char);
+        Reserve(Typing.Bool);
+
+        source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
+    }
 
     public void Reserve(Word w) {
         words.Add(w.Lexeme, w);
     }
 
-    public Lexer() {
-        Reserve(Word.Var);
-        Reserve(Word.Package);
-        Reserve(Word.Ret);
-
-        Reserve(Typ.Int);
-        Reserve(Typ.Func);
-
-        source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
-    }
-
     public Token Scan() {
-        for (; ; ReadChar()) {
-            if (peek == ' ' || peek == '\t') {
-                continue;
+        for (; ; Readch()) {
+            if (ended) {
+                var t = new Token(Tag.Eof);
+                peek = ' ';
+                return t;
             }
 
-            if (peek == '\n') {
+            if (peek == ' ' || peek == '\t' || peek == '\r') {
+                continue;
+            } else if (peek == '\n') {
                 Line++;
                 Pos = 0;
             } else {
@@ -44,27 +54,42 @@ public class Lexer {
         }
 
         switch (peek) {
+        case '&':
+            if (Readch('&')) {
+                return Word.And;
+            } else {
+                return new Token('&');
+            }
+        case '|':
+            if (Readch('|')) {
+                return Word.Or;
+            } else {
+                return new Token('|');
+            }
         case '=':
-            peek = ' ';
-            return new Token(Tag.Assign);
-        case ':':
-            peek = ' ';
-            return new Token(Tag.Colon);
-        case ';':
-            peek = ' ';
-            return new Token(Tag.Semicolon);
-        case '(':
-            peek = ' ';
-            return new Token(Tag.LParen);
-        case ')':
-            peek = ' ';
-            return new Token(Tag.RParen);
-        case '{':
-            peek = ' ';
-            return new Token(Tag.LBrac);
-        case '}':
-            peek = ' ';
-            return new Token(Tag.RBrac);
+            if (Readch('=')) {
+                return Word.Eq;
+            } else {
+                return new Token('=');
+            }
+        case '!':
+            if (Readch('=')) {
+                return Word.Ne;
+            } else {
+                return new Token('!');
+            }
+        case '<':
+            if (Readch('=')) {
+                return Word.Le;
+            } else {
+                return new Token('<');
+            }
+        case '>':
+            if (Readch('=')) {
+                return Word.Ge;
+            } else {
+                return new Token('>');
+            }
         default:
             break;
         }
@@ -73,23 +98,22 @@ public class Lexer {
             var v = 0;
             do {
                 v = 10 * v + int.Parse(peek.ToString());
-                ReadChar();
+                Readch();
             } while (char.IsDigit(peek));
 
             if (peek != '.') {
-                return new Int(v);
+                return new Num(v);
             }
 
             double x = v;
             double d = 10;
 
-            while (true) {
-                ReadChar();
+            for (; ; ) {
+                Readch();
                 if (!char.IsDigit(peek)) {
                     break;
                 }
-
-                x += double.Parse(peek.ToString()) / 10;
+                x += double.Parse(peek.ToString()) / d;
                 d *= 10;
             }
 
@@ -100,7 +124,7 @@ public class Lexer {
             var b = new StringBuilder();
             do {
                 b.Append(peek);
-                ReadChar();
+                Readch();
             } while (char.IsLetterOrDigit(peek));
 
             var s = b.ToString();
@@ -114,13 +138,28 @@ public class Lexer {
             return w;
         }
 
-        var tok = new Token(Tag.EOF);
+        var tok = new Token(peek);
         peek = ' ';
         return tok;
     }
 
-    private void ReadChar() {
-        peek = (char)source.Read();
+    // Read a char.
+    private void Readch() {
+        var n = source.Read();
+        if (n == -1) {
+            ended = true;
+            return;
+        }
+        peek = (char)n;
         Pos++;
+    }
+
+    private bool Readch(char c) {
+        Readch();
+        if (peek != c) {
+            return false;
+        }
+        peek = ' ';
+        return true;
     }
 }

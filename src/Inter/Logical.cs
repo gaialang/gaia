@@ -16,11 +16,10 @@ public class Logical : Expr {
         }
     }
 
-    public Typ Check(Typ p1, Typ p2) {
-        if (p1 == Typ.Bool && p2 == Typ.Bool) {
-            return Typ.Bool;
-        }
-        else {
+    public Typing Check(Typing p1, Typing p2) {
+        if (p1 == Typing.Bool && p2 == Typing.Bool) {
+            return Typing.Bool;
+        } else {
             return null;
         }
     }

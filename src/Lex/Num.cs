@@ -1,9 +1,10 @@
 ﻿namespace Gaia.Lex;
 
-public class Int : Token {
+// Integer number.
+public class Num : Token {
     public readonly int Value;
 
-    public Int(int v) : base(Lex.Tag.Int) {
+    public Num(int v) : base(Lex.Tag.Num) {
         Value = v;
     }
 

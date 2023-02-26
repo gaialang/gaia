@@ -4,5 +4,5 @@ using Gaia.Symbols;
 
 public class Arg {
     public Id Id;
-    public Typ Typ;
+    public Typing Typ;
 }

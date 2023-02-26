@@ -5,9 +5,9 @@ using Gaia.Symbols;
 
 public class Expr : Node {
     public Token Op;
-    public Typ Typ;
+    public Typing Typ;
 
-    public Expr(Token tok, Typ p) {
+    public Expr(Token tok, Typing p) {
         Op = tok;
         Typ = p;
     }

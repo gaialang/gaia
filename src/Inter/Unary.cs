@@ -8,7 +8,7 @@ public class Unary : Op {
 
     public Unary(Token tok, Expr x) : base(tok, null) {
         expr = x;
-        Typ = Typ.Max(Typ.Int, expr.Typ);
+        Typ = Typing.Max(Typing.Int, expr.Typ);
     }
 
     /*

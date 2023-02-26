@@ -9,7 +9,7 @@ public class If : Stmt {
     public If(Expr x, Stmt s) {
         Expr = x;
         Stmt = s;
-        if (Expr.Typ != Typ.Bool) {
+        if (Expr.Typ != Typing.Bool) {
             Node.Error("boolean required in if");
         }
     }

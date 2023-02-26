@@ -14,12 +14,12 @@ public class Set : Stmt {
         }
     }
 
-    public Typ? Check(Typ p1, Typ p2) {
-        if (Typ.Numeric(p1) && Typ.Numeric(p2)) {
+    public Typing? Check(Typing p1, Typing p2) {
+        if (Typing.Numeric(p1) && Typing.Numeric(p2)) {
             return p2;
         }
 
-        if (p1 == Typ.Bool && p2 == Typ.Bool) {
+        if (p1 == Typing.Bool && p2 == Typing.Bool) {
             return p2;
         }
 
