@@ -6,7 +6,7 @@ var b: int;
 a=1;
 b=2;
 
-func foo(x: int): int {
+func foo(x: int) {
     var c: int;
     var d: int;
     c=1;

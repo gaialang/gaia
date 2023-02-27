@@ -69,24 +69,12 @@ public class Parser {
 
     public Stmt Block() {
         Match('{');
-
         VarDecls();
         var s = Stmts();
-        Match(Tag.Ret);
-        var t = look;
-        Match(Tag.Id);
-
-        var id = top?.Get(t);
-        if (id is null) {
-            Error($"{id} undeclared");
-        }
-
-        Match(';');
         Match('}');
         return s;
     }
 
-    // TODO:
     public Function FuncDecl() {
         if (look.Tag != Tag.Func) {
             Error("func expected");
@@ -139,7 +127,6 @@ public class Parser {
     public Stmt Stmts() {
         switch (look.Tag) {
         case Tag.Func:
-        case Tag.Ret:
         case '}':
         case Tag.Eof:
             return Inter.Stmt.Null;
@@ -199,9 +186,23 @@ public class Parser {
         //         return new Break();
         case '{':
             return Block();
+        case Tag.Ret:
+            return ReturnStmt();
         default:
             return Assign();
         }
+    }
+
+    public Stmt ReturnStmt() {
+        Match(Tag.Ret);
+        var t = look;
+        Match(Tag.Id);
+        var id = top?.Get(t);
+        if (id is null) {
+            Error($"{id} undeclared");
+        }
+        Match(';');
+        return new Ret();
     }
 
     public Expr Bool() {
@@ -290,9 +291,8 @@ public class Parser {
     }
 
     public void VarDecls() {
-        // TODO: Initial move can be moved to another place
         while (look.Tag == Tag.Var) {
-            Move();
+            Match(Tag.Var);
             var tok = look;
             Match(Tag.Id);
             Match(':');

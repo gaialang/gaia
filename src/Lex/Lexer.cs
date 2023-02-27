@@ -117,7 +117,7 @@ public class Lexer {
                 d *= 10;
             }
 
-            return new Float64(x);
+            return new Real(x);
         }
 
         if (char.IsLetter(peek)) {

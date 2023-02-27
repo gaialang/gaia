@@ -1,9 +1,9 @@
-﻿namespace Gaia.Lex;
+namespace Gaia.Lex;
 
-public class Float64 : Token {
+public class Real : Token {
     public readonly double Value;
 
-    public Float64(double v) : base(Lex.Tag.Real) {
+    public Real(double v) : base(Lex.Tag.Real) {
         Value = v;
     }
 
