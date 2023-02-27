@@ -5,6 +5,6 @@ Console.WriteLine("Gaia >>>");
 
 var lexer = new Lexer();
 var parser = new Parser(lexer);
-parser.Run();
+parser.Program();
 
 Console.WriteLine("OK.");

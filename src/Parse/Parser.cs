@@ -1,24 +1,22 @@
-namespace Gaia.Parse;
-
-using System;
-using System.Collections.Generic;
 using System.Data;
 using Gaia.Inter;
 using Gaia.Lex;
 using Gaia.Symbols;
 
+namespace Gaia.Parse;
+
 public class Parser {
-    private Lexer lexer;
+    private readonly Lexer lexer;
     private Token look;
     private Env? top;
     private int used = 0;
 
-    public Parser(Lexer l) {
-        lexer = l;
-        look = lexer.Scan();
+    public Parser(Lexer lex) {
+        this.lexer = lex;
+        Move();
     }
 
-    public void Run() {
+    public void Program() {
         Package();
     }
 
@@ -38,7 +36,7 @@ public class Parser {
         if (look.Tag == t) {
             Move();
         } else {
-            Error($"token {look} != {t}");
+            Error($"token unmatched: {look} != {t}");
         }
     }
 
@@ -69,9 +67,12 @@ public class Parser {
 
     public Stmt Block() {
         Match('{');
+        var savedEnv = top;
+        top = new Env(top);
         VarDecls();
         var s = Stmts();
         Match('}');
+        top = savedEnv;
         return s;
     }
 
