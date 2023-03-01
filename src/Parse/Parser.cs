@@ -110,19 +110,42 @@ public class Parser {
     }
 
     public List<Id> ArgList() {
-        var argsList = new List<Id>();
+        var args = new List<Id>();
+        if (look.Tag == ')') {
+            return args;
+        }
 
         var tok = look;
         Match(Tag.Id);
         Match(':');
         var p = GetTyping();
-
         var id = new Id(tok, p, used);
         top?.Add(tok, id);
         used += Typing.Int.Width;
-        argsList.Add(id);
+        args.Add(id);
 
-        return argsList;
+        ArgRest(args);
+
+        return args;
+    }
+
+    public void ArgRest(List<Id> args) {
+        if (look.Tag != ',') {
+            return;
+        }
+
+        Match(',');
+        var tok = look;
+        Match(Tag.Id);
+        Match(':');
+        var p = GetTyping();
+        var id = new Id(tok, p, used);
+        top?.Add(tok, id);
+        used += Typing.Int.Width;
+        args.Add(id);
+
+        // Find the rest arguments.
+        ArgRest(args);
     }
 
     public Stmt Stmts() {
