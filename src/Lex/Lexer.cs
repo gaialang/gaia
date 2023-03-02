@@ -17,9 +17,14 @@ public class Lexer {
 
     public Lexer() {
         Reserve(new Word("var", Tag.Var));
-        Reserve(new Word("package", Tag.Pkg));
         Reserve(new Word("return", Tag.Ret));
         Reserve(new Word("func", Tag.Func));
+        Reserve(new Word("if", Tag.If));
+        Reserve(new Word("else", Tag.Else));
+        Reserve(new Word("while", Tag.While));
+        Reserve(new Word("break", Tag.Break));
+        Reserve(new Word("loop", Tag.Loop));
+        Reserve(new Word("import", Tag.Import));
 
         Reserve(Word.True);
         Reserve(Word.False);
@@ -27,6 +32,8 @@ public class Lexer {
         Reserve(Typing.Int);
         Reserve(Typing.Char);
         Reserve(Typing.Bool);
+        Reserve(Typing.Nil);
+        Reserve(Typing.Pkg);
 
         source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
     }

@@ -10,9 +10,8 @@ public class Typing : Word {
         Float64 = new("float64", Lex.Tag.Basic, 16),
         Char = new("char", Lex.Tag.Basic, 1),
         Bool = new("bool", Lex.Tag.Basic, 1),
-
         Pkg = new("package", Lex.Tag.Pkg, 4),
-        Nil = new("nil", Lex.Tag.Nil, 4);
+        Nil = new("nil", Lex.Tag.Nil, 1);
 
     // TODO: should func have a width?
     public static readonly Typing Func = new("func", Lex.Tag.Func, 4);

@@ -28,5 +28,6 @@ public static class Tag {
         Nil = 278,
         Var = 279,
         Func = 280,
-        Eof = 281;
+        Eof = 281,
+        Import = 282;
 }
