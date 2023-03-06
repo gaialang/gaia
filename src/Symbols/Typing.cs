@@ -28,9 +28,9 @@ public class Typing : Word {
         }
     }
 
-    public static Typing? Max(Typing p1, Typing p2) {
+    public static Typing Max(Typing p1, Typing p2) {
         if (!Numeric(p1) || !Numeric(p2)) {
-            return null;
+            throw new Exception("type mismatched");
         }
 
         if (p1 == Float64 || p2 == Float64) {

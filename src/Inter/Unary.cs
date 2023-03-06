@@ -6,7 +6,7 @@ using Gaia.Symbols;
 public class Unary : Op {
     public Expr expr;
 
-    public Unary(Token tok, Expr x) : base(tok, null) {
+    public Unary(Token tok, Expr x) : base(tok, Typing.Nil) {
         expr = x;
         Typ = Typing.Max(Typing.Int, expr.Typ);
     }

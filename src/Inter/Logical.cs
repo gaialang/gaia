@@ -7,20 +7,22 @@ public class Logical : Expr {
     public Expr expr1;
     public Expr expr2;
 
-    public Logical(Token tok, Expr x1, Expr x2) : base(tok, null) {
+    public Logical(Token tok, Expr x1, Expr x2) : base(tok, Typing.Nil) {
         expr1 = x1;
         expr2 = x2;
-        Typ = Check(expr1.Typ, expr2.Typ);
-        if (Typ == null) {
-            Error("type error");
+        Typ = Check(x1.Typ, x2.Typ);
+        if (Typ == Typing.Nil) {
+            Error($"{x1.Typ} != {x2.Typ}");
         }
     }
 
     public Typing Check(Typing p1, Typing p2) {
         if (p1 == Typing.Bool && p2 == Typing.Bool) {
             return Typing.Bool;
+        } else if (p1 == Typing.Int && p2 == Typing.Int) {
+            return Typing.Bool;
         } else {
-            return null;
+            return Typing.Nil;
         }
     }
 

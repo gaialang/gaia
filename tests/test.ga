@@ -11,5 +11,10 @@ func foo(x: int, y: int, z: int): int {
     var d: int;
     c=1;
     d=2;
+    if c>=d {
+        c=2;
+    } else {
+        c=3;
+    }
     return c;
 }

@@ -7,16 +7,11 @@ public class Rel : Logical {
     public Rel(Token tok, Expr x1, Expr x2) : base(tok, x1, x2) {
     }
 
-    public Typing? check(Typing p1, Typing p2) {
-        /*
-        if (p1 instanceof Array || p2 instanceof Array) {
-            return null;
-        }
-        */
+    public new Typing Check(Typing p1, Typing p2) {
         if (p1 == p2) {
             return Typing.Bool;
         } else {
-            return null;
+            return Typing.Nil;
         }
     }
 

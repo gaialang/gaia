@@ -13,7 +13,7 @@ public class Parser {
 
     public Parser(Lexer lex) {
         this.lexer = lex;
-        Move();
+        look = lexer.Scan();
     }
 
     public void Program() {
@@ -150,8 +150,8 @@ public class Parser {
 
     public Stmt Stmts() {
         switch (look.Tag) {
-        case Tag.Func:
         case '}':
+        case Tag.Func:
         case Tag.Eof:
             return Inter.Stmt.Null;
         default:
@@ -171,12 +171,12 @@ public class Parser {
         case Tag.If:
             Match(Tag.If);
             x = Bool();
-            s1 = Stmt();
+            s1 = Block();
             if (look.Tag != Tag.Else) {
                 return new If(x, s1);
             }
             Match(Tag.Else);
-            s2 = Stmt();
+            s2 = Block();
             return new Else(x, s1, s2);
         // case Tag.While:
         //         var whilenode = new While();
@@ -304,12 +304,36 @@ public class Parser {
     public Expr Factor() {
         Inter.Expr x;
         switch (look.Tag) {
+        case '(':
+            Move();
+            x = Bool();
+            Match(')');
+            return x;
         case Tag.Num:
             x = new Constant(look, Typing.Int);
             Move();
             return x;
+        case Tag.Real:
+            x = new Constant(look, Typing.Float64);
+            Move();
+            return x;
+        case Tag.True:
+            x = Constant.True;
+            Move();
+            return x;
+        case Tag.False:
+            x = Constant.False;
+            Move();
+            return x;
+        case Tag.Id:
+            var id = top?.Get(look);
+            if (id is null) {
+                Error($"{look} undeclared");
+            }
+            Move();
+            return id!;
         default:
-            Error("Syntax error");
+            Error("Factor has a bug");
             return null;
         }
     }
