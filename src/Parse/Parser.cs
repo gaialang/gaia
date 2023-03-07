@@ -178,36 +178,32 @@ public class Parser {
             Match(Tag.Else);
             s2 = Block();
             return new Else(x, s1, s2);
-        // case Tag.While:
-        //         var whilenode = new While();
-        //         savedStmt = Stmt.Enclosing;
-        //         Stmt.Enclosing = whilenode;
-        //         match(Tag.WHILE);
-        //         match('(');
-        //         x = bool();
-        //         match(')');
-        //         s1 = stmt();
-        //         whilenode.init(x, s1);
-        //         Stmt.Enclosing = savedStmt;
-        //         return whilenode;
-        //     case Tag.DO:
-        //         var donode = new Do();
-        //         savedStmt = Stmt.Enclosing;
-        //         Stmt.Enclosing = donode;
-        //         match(Tag.DO);
-        //         s1 = stmt();
-        //         match(Tag.WHILE);
-        //         match('(');
-        //         x = bool();
-        //         match(')');
-        //         match(';');
-        //         donode.init(s1, x);
-        //         Stmt.Enclosing = savedStmt;
-        //         return donode;
-        // case Tag.BREAK:
-        //         match(Tag.BREAK);
-        //         match(';');
-        //         return new Break();
+        case Tag.While:
+            var whileNode = new While();
+            savedStmt = Inter.Stmt.Enclosing;
+            Inter.Stmt.Enclosing = whileNode;
+            Match(Tag.While);
+            x = Bool();
+            s1 = Stmt();
+            whileNode.Init(x, s1);
+            Inter.Stmt.Enclosing = savedStmt;
+            return whileNode;
+        case Tag.Loop:
+            var loopNode = new Loop();
+            savedStmt = Inter.Stmt.Enclosing;
+            Inter.Stmt.Enclosing = loopNode;
+            Match(Tag.Loop);
+            s1 = Block();
+            Match(Tag.While);
+            x = Bool();
+            Match(';');
+            loopNode.Init(s1, x);
+            Inter.Stmt.Enclosing = savedStmt;
+            return loopNode;
+        case Tag.Break:
+            Match(Tag.Break);
+            Match(';');
+            return new Break();
         case '{':
             return Block();
         case Tag.Ret:
