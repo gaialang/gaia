@@ -97,6 +97,16 @@ public class Lexer {
             } else {
                 return new Token('>');
             }
+        case '/':
+            if (Readch('/')) {
+                // Ignore comments, skip a line and re-scan.
+                do {
+                    Readch();
+                } while (peek != '\n');
+                return Scan();
+            } else {
+                return new Token('/');
+            }
         default:
             break;
         }
@@ -155,6 +165,7 @@ public class Lexer {
         var n = source.Read();
         if (n == -1) {
             ended = true;
+            peek = ' ';
             return;
         }
         peek = (char)n;

@@ -6,6 +6,7 @@ var b: int;
 a=1;
 b=2;
 
+// what to do?
 func foo(x: int, y: int, z: int): int {
     var i: int;
     var j: int;
