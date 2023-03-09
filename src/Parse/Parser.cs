@@ -225,6 +225,7 @@ public class Parser {
         return new Ret();
     }
 
+    // Return expressions, and bool is the highest precedence.
     public Expr Bool() {
         var x = Join();
         while (look.Tag == Tag.Or) {
@@ -301,6 +302,7 @@ public class Parser {
         Inter.Expr x;
         switch (look.Tag) {
         case '(':
+            // Ignore unnecessary parens.
             Move();
             x = Bool();
             Match(')');
@@ -330,6 +332,7 @@ public class Parser {
             return id!;
         default:
             Error("Factor has a bug");
+            // unreachable
             return null;
         }
     }
@@ -341,7 +344,12 @@ public class Parser {
             Match(Tag.Id);
             Match(':');
             var p = GetTyping();
-            Match(';');
+            if (look.Tag != '=') {
+                Match(';');
+            } else {
+                Match('=');
+                var s = Bool();
+            }
             var id = new Id(tok, p, used);
             top?.Add(tok, id);
             used += p.Width;
