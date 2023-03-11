@@ -1,10 +1,12 @@
-﻿using Gaia.Lex;
-using Gaia.Parse;
+using Gaia.AST;
+using Gaia.Compiler;
 
 Console.WriteLine("Gaia >>>");
 
-var lexer = new Lexer();
-var parser = new Parser(lexer);
-parser.Program();
+var scanner = new Scanner();
+var parser = new Parser(scanner);
+var expr = parser.Parse();
+var e = new Emitter();
+e.Visit(expr as PackageNode);
 
-Console.WriteLine("OK.");
+Console.WriteLine("\nOK.");
