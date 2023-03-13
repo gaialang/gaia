@@ -1,6 +1,6 @@
 ﻿namespace Gaia.AST;
 
-public sealed class IntLiteralNode : Node {
+public sealed class IntLiteralNode : Expr {
     public IntLiteralNode(string lexeme, int value) {
         Lexeme = lexeme;
         Value = value;

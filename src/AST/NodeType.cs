@@ -6,13 +6,11 @@ public enum NodeType {
     Var,
     Unary,
     IntLiteral,
+    Func,
+    While,
 
     /*
-        Add,
-        Subtract,
-        Multiply,
         LessThan,
-        Function,
         If,
         For,
         VariableDefinition,

@@ -3,12 +3,15 @@ package main;
 var a: int;
 var b: int = 1;
 
-/*
-func main(x: int, y: int, z: int): int {
+// No way
+// dooo
+func main(x: int, y: int, z: int) -> int {
+    /*
     var i: int;
     var j: int;
     i=1;
     j=3;
+    // hhh
     while true {
         loop {
             i=i+1;
@@ -23,5 +26,5 @@ func main(x: int, y: int, z: int): int {
         i=3;
     }
     return i;
+    */
 }
-*/

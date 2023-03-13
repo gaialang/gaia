@@ -1,7 +1,7 @@
 namespace Gaia.AST;
 
-public sealed class VarNode : Node {
-    public VarNode(IdNode i, Node? expr = null) {
+public sealed class VarAssignNode : Stmt {
+    public VarAssignNode(IdNode i, Node? expr = null) {
         IdNode = i;
         Expr = expr;
         NodeType = NodeType.Var;

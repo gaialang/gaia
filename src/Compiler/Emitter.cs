@@ -15,16 +15,14 @@ public class Emitter : Visitor<string, object?> {
         return n.Name;
     }
 
-    public string Visit(VarNode n, object? ctx = null) {
+    public string Visit(VarAssignNode n, object? ctx = null) {
         if (n.IdNode.IdType == IdType.Int) {
             var name = n.IdNode.Accept(this, ctx);
             if (n.Expr is null) {
-
                 Console.WriteLine($"int {name};");
             } else {
-                Console.Write($"int {name} = ");
-                n.Expr?.Accept(this, ctx);
-                Console.WriteLine(";");
+                var val = n.Expr.Accept(this, ctx);
+                Console.WriteLine($"int {name} = {val};");
             }
         }
         return "";
@@ -32,12 +30,18 @@ public class Emitter : Visitor<string, object?> {
 
     public string Visit(UnaryNode n, object? ctx = null) {
         var operand = n.Operand.Accept(this, ctx);
-        Console.WriteLine($"{n.Operator.Lexeme}{operand};");
-        return "";
+        return $"{n.Operator.Lexeme}{operand};";
     }
 
     public string Visit(IntLiteralNode n, object? ctx = null) {
-        Console.Write(n.Lexeme);
+        return n.Lexeme;
+    }
+
+    public string Visit(FuncNode n, object? ctx = null) {
+        return "";
+    }
+
+    public string Visit(WhileNode n, object? ctx = null) {
         return "";
     }
 }

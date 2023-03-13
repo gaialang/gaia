@@ -1,12 +1,12 @@
 using Gaia.AST;
 using Gaia.Compiler;
 
-Console.WriteLine("Gaia >>>");
+Console.WriteLine("Gaia 0.1.0\n>>>");
 
 var scanner = new Scanner();
 var parser = new Parser(scanner);
 var expr = parser.Parse();
 var e = new Emitter();
-e.Visit(expr as PackageNode);
+e.Visit((PackageNode)expr);
 
-Console.WriteLine("\nOK.");
+Console.WriteLine(">>>");

@@ -10,12 +10,14 @@ public class Scanner {
     public static int Pos { get; private set; } = 0;
 
     private StreamReader source;
-    private char peek = ' ';
     private bool isAtEnd = false;
     private readonly Dictionary<string, TokenType> keywords = new() {
         {"package", TokenType.Package},
         {"var", TokenType.Var},
         {"int", TokenType.Int},
+        {"true", TokenType.True},
+        {"false", TokenType.False},
+        {"func", TokenType.Func},
     };
 
     public Scanner() {
@@ -23,10 +25,6 @@ public class Scanner {
     }
 
     public Token Scan() {
-        if (isAtEnd) {
-            return new Token(TokenType.EndOfFile, "\0", Line, Pos);
-        }
-
         SkipWhitespace();
 
         var ch = Advance();
@@ -63,10 +61,27 @@ public class Scanner {
                 return new Token('>');
             }
             */
+        case ',':
+            return new Token(TokenType.Comma, ",", Line, Pos);
+        case '(':
+            return new Token(TokenType.LParen, "(", Line, Pos);
+        case ')':
+            return new Token(TokenType.RParen, ")", Line, Pos);
+        case '{':
+            return new Token(TokenType.LBrace, "{", Line, Pos);
+        case '}':
+            return new Token(TokenType.RBrace, "}", Line, Pos);
         case ';':
             return new Token(TokenType.Semicolon, ";", Line, Pos);
         case ':':
             return new Token(TokenType.Colon, ":", Line, Pos);
+        case '-':
+            if (Peek() == '>') {
+                Advance();
+                return new Token(TokenType.Arrow, "->", Line, Pos);
+            } else {
+                return new Token(TokenType.Minus, "-", Line, Pos);
+            }
         case '=':
             if (Peek() == '=') {
                 Advance();
@@ -85,8 +100,11 @@ public class Scanner {
                 SkipBlockComment();
                 return Scan();
             } else {
+                // TODO: Is binary a good type?
                 return new Token(TokenType.Binary, "/", Line, Pos);
             }
+        case '\0':
+            return new Token(TokenType.EndOfFile, "\0", Line, Pos);
         default:
             if (char.IsLetter(ch)) {
                 return Identifier(ch);
@@ -119,7 +137,7 @@ public class Scanner {
 
         var str = b.ToString();
         var d = double.Parse(str);
-        return new Token(TokenType.IntLiteral, str, Line, Pos, d);
+        return new Token(TokenType.FloatLiteral, str, Line, Pos, d);
     }
 
     private Token Identifier(char ch) {
@@ -139,28 +157,12 @@ public class Scanner {
         return new Token(TokenType.Id, s, Line, Pos);
     }
 
-    // Read a char.
-    private void Readch() {
+    private char Advance() {
         var n = source.Read();
         if (n == -1) {
             isAtEnd = true;
-            peek = ' ';
-            return;
+            return '\0';
         }
-        peek = (char)n;
-        Pos++;
-    }
-
-    private bool Readch(char c) {
-        Readch();
-        if (peek != c) {
-            return false;
-        }
-        peek = ' ';
-        return true;
-    }
-    private char Advance() {
-        var n = source.Read();
         var peek = (char)n;
         Pos++;
         return peek;
@@ -176,7 +178,7 @@ public class Scanner {
     }
 
     private void SkipWhitespace() {
-        while (true) {
+        while (!isAtEnd) {
             var c = Peek();
             switch (c) {
             case ' ':
@@ -186,6 +188,7 @@ public class Scanner {
                 break;
             case '\n':
                 Line++;
+                Pos = 0;
                 Advance();
                 break;
             default:
@@ -195,15 +198,31 @@ public class Scanner {
     }
 
     private void SkipBlockComment() {
-        while (!isAtEnd && Peek() != '*') {
-            Advance();
-        }
-        Advance();
-        if (Peek() == '/') {
-            // Reach the end of the block comment.
-            return;
-        } else {
-            SkipBlockComment();
+        while (!isAtEnd) {
+            var c = Peek();
+            switch (c) {
+            case ' ':
+            case '\r':
+            case '\t':
+                Advance();
+                break;
+            case '\n':
+                Line++;
+                Pos = 0;
+                Advance();
+                break;
+            case '*':
+                Advance();
+                if (Peek() == '/') {
+                    Advance();
+                    // Reach the end of the block comment.
+                    return;
+                }
+                break;
+            default:
+                Advance();
+                break;
+            }
         }
     }
 

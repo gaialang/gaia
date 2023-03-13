@@ -1,6 +1,6 @@
 namespace Gaia.AST;
 
-public sealed class PackageNode : Node {
+public sealed class PackageNode : Stmt {
     public readonly string Name;
     public readonly List<Node> ExprList;
     public override NodeType NodeType { get; protected set; }

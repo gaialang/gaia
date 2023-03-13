@@ -7,22 +7,22 @@ public class Parser {
     private Token look;
     private Env? top = null;
     private readonly Dictionary<string, int> binaryOperatorPrecedence = new() {
-        { "=", 2 },
-        {"||", 10},
-        {"&&", 20},
-        {"|",30},
+        { "=", 80 },
+        {"||", 70},
+        {"&&", 60},
+        {"|",50},
         {"&",40},
-        { "==", 50 },
-        { "!=", 50 },
-        { "<", 60 },
-        { "<=", 60 },
-        { ">", 60 },
-        { ">=", 60 },
-        { "+", 70 },
-        { "-", 70 },
-        { "*", 80 },
-        { "/", 80 },
-        { "%", 80 },
+        { "==", 30 },
+        { "!=", 30 },
+        { "<", 20 },
+        { "<=", 10 },
+        { ">", 10 },
+        { ">=", 10 },
+        { "+", 2 },
+        { "-", 2 },
+        { "*", 1 },
+        { "/", 1 },
+        { "%", 1 },
     };
     private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-" };
 
@@ -35,8 +35,13 @@ public class Parser {
         return ParsePackage();
     }
 
-    public void Advance() {
+    /// <summary>
+    /// Return the next token.
+    /// </summary>
+    /// <returns></returns>
+    public Token Advance() {
         look = lex.Scan();
+        return look;
     }
 
     public static void Error(string s) {
@@ -44,7 +49,7 @@ public class Parser {
     }
 
     /// <summary>
-    /// Match and move to next token.
+    /// Match and move to the next token.
     /// </summary>
     /// <param name="t"></param>
     public void Match(TokenType t) {
@@ -63,7 +68,7 @@ public class Parser {
         var savedEnv = top;
         top = new Env(top);
 
-        // Match package clause.
+        // Match package statement.
         Match(TokenType.Package);
         var tok = look;
         Match(TokenType.Id);
@@ -71,8 +76,10 @@ public class Parser {
         top?.Add(tok.Lexeme, id);
         Match(TokenType.Semicolon);
 
+        // Toplevel statements.
         var exprList = VarDeclarations();
-        // var f = FuncDecl();
+        var f = FuncDeclarations();
+        exprList.AddRange(f);
 
         var p = new PackageNode(id.Name, exprList);
         top = savedEnv;
@@ -98,7 +105,7 @@ public class Parser {
             }
             var id = new IdNode(tok.Lexeme, p);
             top?.Add(tok.Lexeme, id);
-            var varNode = new VarNode(id, s);
+            var varNode = new VarAssignNode(id, s);
             exprList.Add(varNode);
         }
         return exprList;
@@ -106,8 +113,8 @@ public class Parser {
 
     // Get a type for the variable.
     public IdType GetIdType() {
-        var ty = look.Type;
-        switch (ty) {
+        var p = look.Type;
+        switch (p) {
         case TokenType.Int:
             Advance();
             return IdType.Int;
@@ -134,11 +141,15 @@ public class Parser {
             return new Not(tok, Unary());
         }
         */ else {
-            return Factor();
+            return Primary();
         }
     }
 
-    public Node Factor() {
+    /// <summary>
+    /// Smallest factor.
+    /// </summary>
+    /// <returns></returns>
+    public Node Primary() {
         Node x;
         switch (look.Type) {
         case TokenType.IntLiteral:
@@ -183,90 +194,92 @@ public class Parser {
         }
     }
 
-    /*
-        public Stmt Block() {
-            Match('{');
-            var savedEnv = top;
-            top = new Env(top);
-            VarDecls();
-            var s = Stmts();
-            Match('}');
-            top = savedEnv;
-            return s;
+    public List<Node> FuncDeclarations() {
+        if (look.Type != TokenType.Func) {
+            Error("func expected");
         }
 
-        public Function FuncDecl() {
-            if (look.Tag != Tag.Func) {
-                Error("func expected");
-            }
+        var list = new List<Node>();
+        var savedEnv = top;
+        top = new Env(top);
 
-            var savedEnv = top;
-            top = new Env(top);
-            Match(Tag.Func);
-            Match(Tag.Id);
+        Match(TokenType.Func);
+        var tok = look;
+        Match(TokenType.Id);
 
-            var tok = look;
-            var funcName = new Id(tok, Typing.Func, used);
-            top?.Add(tok, funcName);
-            used += Typing.Func.Width;
+        var funcId = new IdNode(tok.Lexeme, IdType.Func);
+        top?.Add(funcId.Name, funcId);
 
-            Match('(');
-            var args = ArgList();
-            Match(')');
+        Match(TokenType.LParen);
+        var args = ArgList();
+        Match(TokenType.RParen);
 
-            var retType = ReturnType();
-            var stmt = Block();
-            return new Function(funcName, args, Typing.Int, stmt);
-        }
+        var returnType = ReturnType();
+        var b = Block();
+        var funcNode = new FuncNode(funcId.Name, args, returnType, list);
+        list.Add(funcNode);
+        return list;
+    }
 
-        public Typing ReturnType() {
-            if (look.Tag != ':') {
-                return Typing.Nil;
-            }
-            Match(':');
-            var p = GetTyping();
-            return p;
-        }
-
-        public List<Id> ArgList() {
-            var args = new List<Id>();
-            if (look.Tag == ')') {
-                return args;
-            }
-
-            var tok = look;
-            Match(Tag.Id);
-            Match(':');
-            var p = GetTyping();
-            var id = new Id(tok, p, used);
-            top?.Add(tok, id);
-            used += Typing.Int.Width;
-            args.Add(id);
-
-            ArgRest(args);
-
+    public List<IdNode> ArgList() {
+        var args = new List<IdNode>();
+        if (look.Type == TokenType.RParen) {
             return args;
         }
 
-        public void ArgRest(List<Id> args) {
-            if (look.Tag != ',') {
-                return;
-            }
+        var tok = look;
+        Match(TokenType.Id);
+        Match(TokenType.Colon);
+        var p = GetIdType();
+        var id = new IdNode(tok.Lexeme, p);
+        top?.Add(id.Name, id);
+        args.Add(id);
 
-            Match(',');
-            var tok = look;
-            Match(Tag.Id);
-            Match(':');
-            var p = GetTyping();
-            var id = new Id(tok, p, used);
-            top?.Add(tok, id);
-            used += Typing.Int.Width;
-            args.Add(id);
+        ArgRest(args);
 
-            // Find the rest arguments.
-            ArgRest(args);
+        return args;
+    }
+
+    public void ArgRest(List<IdNode> args) {
+        if (look.Type != TokenType.Comma) {
+            return;
         }
+        Advance();
 
+        var tok = look;
+        Match(TokenType.Id);
+        Match(TokenType.Colon);
+        var p = GetIdType();
+        var id = new IdNode(tok.Lexeme, p);
+        top?.Add(id.Name, id);
+        args.Add(id);
+
+        // Find the rest arguments.
+        ArgRest(args);
+    }
+
+    public IdType ReturnType() {
+        if (look.Type != TokenType.Arrow) {
+            return IdType.Nil;
+        }
+        Advance();
+        var p = GetIdType();
+        return p;
+    }
+
+    public List<Node> Block() {
+        Match(TokenType.LBrace);
+        var savedEnv = top;
+        top = new Env(top);
+        // VarDecls();
+        // var s = Stmts();
+        Match(TokenType.RBrace);
+        top = savedEnv;
+        // return s;
+        return new List<Node>();
+    }
+
+    /*
         public Stmt Stmts() {
             switch (look.Tag) {
             case '}':

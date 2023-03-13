@@ -14,4 +14,8 @@ public class Token {
         Pos = pos;
         Value = value;
     }
+
+    public override string ToString() {
+        return Lexeme;
+    }
 }

@@ -2,7 +2,7 @@ using Gaia.Compiler;
 
 namespace Gaia.AST;
 
-public sealed class UnaryNode : Node {
+public sealed class UnaryNode : Expr {
     public Token Operator { get; }
     public Node Operand { get; }
     public UnaryNode(Token op, Node operand) {
