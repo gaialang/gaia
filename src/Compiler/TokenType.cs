@@ -4,7 +4,6 @@ public enum TokenType {
     Package,
     Id,
     EndOfFile,
-    Binary, // binary operators + - * /
     Semicolon,
     Var,
     Colon,
@@ -22,7 +21,15 @@ public enum TokenType {
     LBrace,
     RBrace,
     Arrow,
+    Plus,
     Minus,
+    Multiply,
+    Divide,
+    LessThan,
+    LessEqualThan,
+    GreaterThan,
+    GreaterEqualThan,
+    Not,
 
     /*
         IF,
@@ -30,9 +37,5 @@ public enum TokenType {
         ELSE,
         FOR,
         IN,
-        UNARY,
-        PLUS,
-        MINUS,
-        LESS
     */
 }

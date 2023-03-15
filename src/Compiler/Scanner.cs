@@ -1,5 +1,4 @@
 using System.Text;
-using Gaia.AST;
 
 namespace Gaia.Compiler;
 
@@ -48,18 +47,6 @@ public class Scanner {
             } else {
                 return new Token('!');
             }
-        case '<':
-            if (Readch('=')) {
-                return Word.Le;
-            } else {
-                return new Token('<');
-            }
-        case '>':
-            if (Readch('=')) {
-                return Word.Ge;
-            } else {
-                return new Token('>');
-            }
             */
         case ',':
             return new Token(TokenType.Comma, ",", Line, Pos);
@@ -75,6 +62,10 @@ public class Scanner {
             return new Token(TokenType.Semicolon, ";", Line, Pos);
         case ':':
             return new Token(TokenType.Colon, ":", Line, Pos);
+        case '*':
+            return new Token(TokenType.Multiply, "*", Line, Pos);
+        case '+':
+            return new Token(TokenType.Plus, "+", Line, Pos);
         case '-':
             if (Peek() == '>') {
                 Advance();
@@ -100,8 +91,19 @@ public class Scanner {
                 SkipBlockComment();
                 return Scan();
             } else {
-                // TODO: Is binary a good type?
-                return new Token(TokenType.Binary, "/", Line, Pos);
+                return new Token(TokenType.Divide, "/", Line, Pos);
+            }
+        case '<':
+            if (Peek() == '=') {
+                return new Token(TokenType.LessEqualThan, "<=", Line, Pos);
+            } else {
+                return new Token(TokenType.LessThan, "<", Line, Pos);
+            }
+        case '>':
+            if (Peek() == '=') {
+                return new Token(TokenType.GreaterEqualThan, ">=", Line, Pos);
+            } else {
+                return new Token(TokenType.GreaterThan, ">", Line, Pos);
             }
         case '\0':
             return new Token(TokenType.EndOfFile, "\0", Line, Pos);

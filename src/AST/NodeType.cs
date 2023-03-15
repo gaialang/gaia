@@ -3,18 +3,23 @@ namespace Gaia.AST;
 public enum NodeType {
     Package,
     Id,
-    Var,
-    Unary,
+    VarAssign,
+    UnaryMinus,
+    Not,
     IntLiteral,
     Func,
     While,
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    LessThan,
+    GreaterThan,
+    EqualEqual,
+    BinaryOperand,
 
     /*
-        LessThan,
         If,
         For,
-        VariableDefinition,
-        Equal,
-        Assign
         */
 }

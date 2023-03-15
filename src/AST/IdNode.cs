@@ -1,6 +1,6 @@
 namespace Gaia.AST;
 
-public sealed class IdNode : Expr {
+public sealed class IdNode : Node {
     public IdNode(string name, IdType t) {
         Name = name;
         IdType = t;

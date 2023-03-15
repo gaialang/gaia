@@ -28,9 +28,15 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(UnaryNode n, object? ctx = null) {
+    public string Visit(UnaryOpNode n, object? ctx = null) {
         var operand = n.Operand.Accept(this, ctx);
-        return $"{n.Operator.Lexeme}{operand};";
+        return $"{n.Operator.Lexeme}{operand}";
+    }
+
+    public string Visit(BinaryOpNode n, object? ctx = null) {
+        var lhs = n.Lhs.Accept(this, ctx);
+        var rhs = n.Rhs.Accept(this, ctx);
+        return $"{lhs} {n.OperatorToken.Lexeme} {rhs}";
     }
 
     public string Visit(IntLiteralNode n, object? ctx = null) {

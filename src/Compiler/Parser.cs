@@ -7,24 +7,27 @@ public class Parser {
     private Token look;
     private Env? top = null;
     private readonly Dictionary<string, int> binaryOperatorPrecedence = new() {
-        { "=", 80 },
-        {"||", 70},
-        {"&&", 60},
-        {"|",50},
-        {"&",40},
-        { "==", 30 },
-        { "!=", 30 },
-        { "<", 20 },
+        { "*", 13 },
+        { "/", 13 },
+        { "%", 13 },
+        { "+", 12 },
+        { "-", 12 },
+
+        { "<", 10 },
         { "<=", 10 },
         { ">", 10 },
         { ">=", 10 },
-        { "+", 2 },
-        { "-", 2 },
-        { "*", 1 },
-        { "/", 1 },
-        { "%", 1 },
+        { "==", 9 },
+        { "!=", 9 },
+        { "&", 8 },
+
+        { "|", 6 },
+        { "&&", 5 },
+        { "||", 4 },
+
+        { ",", 1},
     };
-    private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-" };
+    private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-", "!" };
 
     public Parser(Scanner lex) {
         this.lex = lex;
@@ -95,12 +98,12 @@ public class Parser {
             Match(TokenType.Colon);
             var p = GetIdType();
 
-            Node? s = null;
+            Expr? s = null;
             if (look.Type != TokenType.Equal) {
                 Match(TokenType.Semicolon);
             } else {
                 Advance();
-                s = Unary();
+                s = Expression();
                 Match(TokenType.Semicolon);
             }
             var id = new IdNode(tok.Lexeme, p);
@@ -129,28 +132,30 @@ public class Parser {
         // }
     }
 
-    public Node Unary() {
+    public Expr Unary() {
         if (unaryOperators.Contains(look.Lexeme)) {
-            Advance();
+            var op = Advance();
             var operand = Unary();
-            return new UnaryNode(look, operand);
-        }
-        /* else if (look.Tag == '!') {
-            var tok = look;
-            Move();
-            return new Not(tok, Unary());
-        }
-        */ else {
+            return new UnaryOpNode(op, operand);
+        } else {
             return Primary();
         }
     }
 
+    private int GetPrecedence(Token token) {
+        if (binaryOperatorPrecedence.TryGetValue(token.Lexeme, out var p)) {
+            return p;
+        }
+
+        return 0;
+    }
+
     /// <summary>
-    /// Smallest factor.
+    /// Factor.
     /// </summary>
     /// <returns></returns>
-    public Node Primary() {
-        Node x;
+    public Expr Primary() {
+        Expr x;
         switch (look.Type) {
         case TokenType.IntLiteral:
             x = new IntLiteralNode(look.Lexeme, (int)look.Value!);
@@ -188,7 +193,7 @@ public class Parser {
         }
         */
         default:
-            Error("Factor has a bug");
+            Error("Primary has a bug");
             // unreachable
             return null;
         }
@@ -279,6 +284,24 @@ public class Parser {
         return new List<Node>();
     }
 
+    public Expr Expression(int precedence = 0) {
+        var lhs = Unary();
+
+        while (precedence < GetPrecedence(look)) {
+            lhs = ParseBinary(lhs);
+        }
+
+        return lhs;
+    }
+
+    private Expr ParseBinary(Expr lhs) {
+        var token = look;
+        var precedence = GetPrecedence(token);
+        Advance();
+        var rhs = Expression(precedence);
+        return new BinaryOpNode(token, lhs, rhs);
+    }
+
     /*
         public Stmt Stmts() {
             switch (look.Tag) {
@@ -355,62 +378,6 @@ public class Parser {
             }
             Match(';');
             return new Ret();
-        }
-
-        // Return expressions, and bool is the highest precedence.
-        public Expr Bool() {
-            var x = Join();
-            while (look.Tag == Tag.Or) {
-                var tok = look;
-                Move();
-                x = new Or(tok, x, Join());
-            }
-            return x;
-        }
-
-        public Expr Join() {
-            var x = Equality();
-            while (look.Tag == Tag.And) {
-                var tok = look;
-                Move();
-                x = new And(tok, x, Equality());
-            }
-            return x;
-        }
-
-        public Expr Equality() {
-            var x = Rel();
-            while (look.Tag == Tag.Eq || look.Tag == Tag.Ne) {
-                var tok = look;
-                Move();
-                x = new Rel(tok, x, Rel());
-            }
-            return x;
-        }
-
-        public Expr Rel() {
-            var x = Expr();
-            switch (look.Tag) {
-            case '<':
-            case Tag.Le:
-            case Tag.Ge:
-            case '>':
-                var tok = look;
-                Move();
-                return new Rel(tok, x, Expr());
-            default:
-                return x;
-            }
-        }
-
-        public Expr Expr() {
-            var x = Term();
-            while (look.Tag == '+' || look.Tag == '-') {
-                var tok = look;
-                Move();
-                x = new Arith(tok, x, Term());
-            }
-            return x;
         }
 
         public Stmt Assign() {
