@@ -10,19 +10,6 @@ public enum SyntaxKind {
     IntLiteral,
     Block,
     AssignStatement,
-
-    Not,
-    While,
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    LessThan,
-    GreaterThan,
-    EqualEqual,
-
-    /*
-        If,
-        For,
-        */
+    ReturnStatement,
+    WhileStatement,
 }

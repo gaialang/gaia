@@ -11,4 +11,5 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(BinaryExpression node, TContext ctx);
     TResult Visit(Block node, TContext ctx);
     TResult Visit(AssignStatement node, TContext ctx);
+    TResult Visit(ReturnStatement node, TContext ctx);
 }

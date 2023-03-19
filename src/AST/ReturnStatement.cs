@@ -1,12 +1,12 @@
 namespace Gaia.AST;
 
-public sealed class WhileStatement : Statement {
-    public WhileStatement(string name) {
-        Name = name;
-        Kind = SyntaxKind.WhileStatement;
+public sealed class ReturnStatement : Statement {
+    public ReturnStatement(Expression? e = null) {
+        Expression = e;
+        Kind = SyntaxKind.ReturnStatement;
     }
 
-    public string Name { get; }
+    public Expression? Expression { get; }
 
     public override SyntaxKind Kind { get; protected set; }
 

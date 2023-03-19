@@ -10,12 +10,13 @@ public class Scanner {
 
     private readonly StreamReader source;
     private readonly Dictionary<string, TokenType> keywords = new() {
-        {"package", TokenType.Package},
-        {"var", TokenType.Var},
-        {"int", TokenType.Int},
-        {"true", TokenType.True},
-        {"false", TokenType.False},
-        {"func", TokenType.Func},
+        {"package", TokenType.PackageKeyword},
+        {"var", TokenType.VarKeyword},
+        {"int", TokenType.IntKeyword},
+        {"true", TokenType.TrueKeyword},
+        {"false", TokenType.FalseKeyword},
+        {"func", TokenType.FuncKeyword},
+        {"return", TokenType.ReturnKeyword},
     };
     private readonly List<Token> tokens = new();
     // Current index of the token list.

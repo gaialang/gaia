@@ -64,7 +64,7 @@ public sealed class Parser {
     }
 
     public Statement ParsePackage() {
-        if (look.Type != TokenType.Package) {
+        if (look.Type != TokenType.PackageKeyword) {
             Error("Expected package");
         }
 
@@ -72,7 +72,7 @@ public sealed class Parser {
         top = new Env(top);
 
         // Match package statement.
-        Match(TokenType.Package);
+        Match(TokenType.PackageKeyword);
         var tok = look;
         Match(TokenType.Identifier);
         var id = new Identifier(tok.Lexeme, IdType.Package);
@@ -91,7 +91,7 @@ public sealed class Parser {
 
     public List<Statement> VarDeclarations() {
         var list = new List<Statement>();
-        while (look.Type == TokenType.Var) {
+        while (look.Type == TokenType.VarKeyword) {
             var varStmt = ParseVarStatement();
             list.Add(varStmt);
         }
@@ -99,7 +99,7 @@ public sealed class Parser {
     }
 
     public Statement ParseVarStatement() {
-        Match(TokenType.Var);
+        Match(TokenType.VarKeyword);
         var tok = look;
         Match(TokenType.Identifier);
         Match(TokenType.Colon);
@@ -109,7 +109,7 @@ public sealed class Parser {
         if (look.Type != TokenType.Equal) {
             Match(TokenType.Semicolon);
         } else {
-            Advance();
+            Match(TokenType.Equal);
             s = ParseExpression();
             Match(TokenType.Semicolon);
         }
@@ -123,7 +123,7 @@ public sealed class Parser {
     private IdType GetIdType() {
         var p = look.Type;
         switch (p) {
-        case TokenType.Int:
+        case TokenType.IntKeyword:
             Advance();
             return IdType.Int;
         default:
@@ -208,7 +208,7 @@ public sealed class Parser {
 
     public List<Statement> FuncDeclarations() {
         var list = new List<Statement>();
-        while (look.Type == TokenType.Func) {
+        while (look.Type == TokenType.FuncKeyword) {
             var funcStmt = ParseFuncStatement();
             list.Add(funcStmt);
         }
@@ -220,7 +220,7 @@ public sealed class Parser {
         var savedEnv = top;
         top = new Env(top);
 
-        Match(TokenType.Func);
+        Match(TokenType.FuncKeyword);
         var tok = look;
         Match(TokenType.Identifier);
 
@@ -260,13 +260,13 @@ public sealed class Parser {
         if (look.Type != TokenType.Comma) {
             return;
         }
-        Advance();
 
-        var tok = look;
+        Match(TokenType.Comma);
+        var t = look;
         Match(TokenType.Identifier);
         Match(TokenType.Colon);
         var p = GetIdType();
-        var id = new Identifier(tok.Lexeme, p);
+        var id = new Identifier(t.Lexeme, p);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -278,7 +278,8 @@ public sealed class Parser {
         if (look.Type != TokenType.Arrow) {
             return IdType.Nil;
         }
-        Advance();
+
+        Match(TokenType.Arrow);
         var p = GetIdType();
         return p;
     }
@@ -320,7 +321,7 @@ public sealed class Parser {
 
     private List<Statement> StatementList() {
         var list = new List<Statement>();
-        while (look.Type != TokenType.RBrace && look.Type != TokenType.Func && look.Type != TokenType.EndOfFile) {
+        while (look.Type != TokenType.RBrace && look.Type != TokenType.FuncKeyword && look.Type != TokenType.EndOfFile) {
             var stmt = ParseStatement();
             if (stmt is not null) {
                 list.Add(stmt);
@@ -378,26 +379,26 @@ public sealed class Parser {
             */
         case TokenType.LBrace:
             return ParseBlock();
-        // case TokenType.Return:
-        //     return ReturnStmt();
-        case TokenType.Var:
+        case TokenType.ReturnKeyword:
+            return ReturnStmt();
+        case TokenType.VarKeyword:
             return ParseVarStatement();
         default:
             return ParseAssign();
         }
     }
 
-    // public Stmt ReturnStmt() {
-    //     Match(TokenType.Return);
-    //     var t = look;
-    //     Match(TokenType.Id);
-    //     var id = top?.Get(t.Lexeme);
-    //     if (id is null) {
-    //         Error($"{t} undeclared");
-    //     }
-    //     Match(TokenType.Semicolon);
-    //     return new ReturnStmt();
-    // }
+    public Statement ReturnStmt() {
+        Match(TokenType.ReturnKeyword);
+
+        if (look.Type != TokenType.Semicolon) {
+            var s = ParseUnary();
+            return new ReturnStatement(s);
+        }
+
+        Match(TokenType.Semicolon);
+        return new ReturnStatement();
+    }
 
     private Statement? ParseAssign() {
         Statement? stmt = null;

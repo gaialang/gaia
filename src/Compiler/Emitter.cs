@@ -70,19 +70,29 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(WhileStatement n, object? ctx = null) {
+    public string Visit(WhileStatement node, object? ctx = null) {
         return "";
     }
 
-    public string Visit(AssignStatement a, object? ctx = null) {
-        var name = a.Id.Accept(this, ctx);
-        var val = a.Expr.Accept(this, ctx);
+    public string Visit(ReturnStatement node, object? ctx = null) {
+        var s = node.Expression?.Accept(this, ctx);
+        if (s is null) {
+            writer.WriteLine($"return;");
+        } else {
+            writer.WriteLine($"return {s};");
+        }
+        return "";
+    }
+
+    public string Visit(AssignStatement node, object? ctx = null) {
+        var name = node.Id.Accept(this, ctx);
+        var val = node.Expr.Accept(this, ctx);
         writer.WriteLine($"{name} = {val};");
         return "";
     }
 
-    public string Visit(Block b, object? ctx = null) {
-        foreach (var stmt in b.Statements) {
+    public string Visit(Block node, object? ctx = null) {
+        foreach (var stmt in node.Statements) {
             var indentString = GetIndent();
             writer.Write(indentString);
             stmt.Accept(this, ctx);
