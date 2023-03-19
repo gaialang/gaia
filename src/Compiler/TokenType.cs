@@ -2,7 +2,7 @@ namespace Gaia.Compiler;
 
 public enum TokenType {
     Package,
-    Id,
+    Identifier,
     EndOfFile,
     Semicolon,
     Var,
@@ -23,19 +23,14 @@ public enum TokenType {
     Arrow,
     Plus,
     Minus,
-    Multiply,
-    Divide,
+    Mul,
+    Div,
     LessThan,
     LessEqualThan,
     GreaterThan,
     GreaterEqualThan,
     Not,
-
-    /*
-        IF,
-        THEN,
-        ELSE,
-        FOR,
-        IN,
-    */
+    Return,
+    LBracket,
+    RBracket,
 }

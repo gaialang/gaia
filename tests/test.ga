@@ -6,12 +6,12 @@ var b: int = 1 * 2 + 3 / 4;
 // No way
 // dooo
 func main(x: int, y: int, z: int) -> int {
-    /*
     var i: int;
     var j: int;
     i=1;
-    j=3;
+    j=i+3;
     // hhh
+    /*
     while true {
         loop {
             i=i+1;

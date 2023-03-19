@@ -1,20 +1,17 @@
 ﻿namespace Gaia.AST;
 
-public sealed class FuncNode : Stmt {
-    public FuncNode(string name, List<IdNode> args, IdType returnType, List<Node> body) {
+public sealed class FuncStmt : Stmt {
+    public FuncStmt(string name, List<Identifier> args, IdType returnType, StmtList? body) {
         Name = name;
         Arguments = args;
         ReturnType = returnType;
         Body = body;
-        NodeType = NodeType.Func;
     }
 
     public string Name { get; }
-    public List<IdNode> Arguments { get; }
+    public List<Identifier> Arguments { get; }
     public IdType ReturnType { get; }
-    public List<Node> Body { get; private set; }
-
-    public override NodeType NodeType { get; protected set; }
+    public StmtList? Body { get; private set; }
 
     public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
         return visitor.Visit(this, ctx);

@@ -1,12 +1,14 @@
 namespace Gaia.AST;
 
 public interface Visitor<TResult, TContext> {
-    public TResult Visit(PackageNode expr, TContext ctx);
-    public TResult Visit(IdNode expr, TContext ctx);
-    public TResult Visit(VarAssignNode expr, TContext ctx);
-    public TResult Visit(UnaryOpNode expr, TContext ctx);
-    public TResult Visit(IntLiteralNode expr, TContext ctx);
-    public TResult Visit(FuncNode expr, TContext ctx);
-    public TResult Visit(WhileNode expr, TContext ctx);
-    public TResult Visit(BinaryOpNode expr, TContext ctx);
+    TResult Visit(PackageStmt node, TContext ctx);
+    TResult Visit(Identifier node, TContext ctx);
+    TResult Visit(VarStmt node, TContext ctx);
+    TResult Visit(UnaryOpExpr node, TContext ctx);
+    TResult Visit(IntLiteral node, TContext ctx);
+    TResult Visit(FuncStmt node, TContext ctx);
+    TResult Visit(WhileStmt node, TContext ctx);
+    TResult Visit(BinaryOpExpr node, TContext ctx);
+    TResult Visit(StmtList node, TContext ctx);
+    TResult Visit(AssignStmt node, TContext ctx);
 }

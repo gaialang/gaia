@@ -2,7 +2,7 @@ using Gaia.AST;
 
 namespace Gaia.Compiler;
 
-public class Parser {
+public sealed class Parser {
     private readonly Scanner lex;
     private Token look;
     private Env? top = null;
@@ -74,8 +74,8 @@ public class Parser {
         // Match package statement.
         Match(TokenType.Package);
         var tok = look;
-        Match(TokenType.Id);
-        var id = new IdNode(tok.Lexeme, IdType.Package);
+        Match(TokenType.Identifier);
+        var id = new Identifier(tok.Lexeme, IdType.Package);
         top?.Add(tok.Lexeme, id);
         Match(TokenType.Semicolon);
 
@@ -84,17 +84,17 @@ public class Parser {
         var f = FuncDeclarations();
         exprList.AddRange(f);
 
-        var p = new PackageNode(id.Name, exprList);
+        var p = new PackageStmt(id.Name, exprList);
         top = savedEnv;
         return p;
     }
 
-    public List<Node> VarDeclarations() {
-        var exprList = new List<Node>();
+    public List<Stmt> VarDeclarations() {
+        var list = new List<Stmt>();
         while (look.Type == TokenType.Var) {
             Match(TokenType.Var);
             var tok = look;
-            Match(TokenType.Id);
+            Match(TokenType.Identifier);
             Match(TokenType.Colon);
             var p = GetIdType();
 
@@ -106,12 +106,12 @@ public class Parser {
                 s = Expression();
                 Match(TokenType.Semicolon);
             }
-            var id = new IdNode(tok.Lexeme, p);
+            var id = new Identifier(tok.Lexeme, p);
             top?.Add(tok.Lexeme, id);
-            var varNode = new VarAssignNode(id, s);
-            exprList.Add(varNode);
+            var varNode = new VarStmt(id, s);
+            list.Add(varNode);
         }
-        return exprList;
+        return list;
     }
 
     // Get a type for the variable.
@@ -136,7 +136,7 @@ public class Parser {
         if (unaryOperators.Contains(look.Lexeme)) {
             var op = Advance();
             var operand = Unary();
-            return new UnaryOpNode(op, operand);
+            return new UnaryOpExpr(op, operand);
         } else {
             return Primary();
         }
@@ -158,7 +158,7 @@ public class Parser {
         Expr x;
         switch (look.Type) {
         case TokenType.IntLiteral:
-            x = new IntLiteralNode(look.Lexeme, (int)look.Value!);
+            x = new IntLiteral(look.Lexeme, (int)look.Value!);
             Advance();
             return x;
         /*
@@ -168,7 +168,7 @@ public class Parser {
         x = Bool();
         Match(')');
         return x;
-    case Tag.Real:
+    case Tag.Float:
         x = new Constant(look, Typing.Float64);
         Move();
         return x;
@@ -180,18 +180,20 @@ public class Parser {
         x = Constant.False;
         Move();
         return x;
-    case Tag.Id:
-        var id = top?.Get(look);
-        if (id is null) {
-            Error($"{look} undeclared");
-        }
-        Move();
-        if (look.Tag != '[') {
-            return id!;
-        } else {
-            return Offset(id!);
-        }
+
         */
+        case TokenType.Identifier:
+            var id = top?.Get(look.Lexeme);
+            if (id is null) {
+                Error($"{look} undeclared");
+            }
+            Advance();
+            if (look.Type != TokenType.LBracket) {
+                return id!;
+            } else {
+                // return Offset(id!);
+                return null;
+            }
         default:
             Error("Primary has a bug");
             // unreachable
@@ -199,20 +201,20 @@ public class Parser {
         }
     }
 
-    public List<Node> FuncDeclarations() {
+    public List<Stmt> FuncDeclarations() {
         if (look.Type != TokenType.Func) {
             Error("func expected");
         }
 
-        var list = new List<Node>();
+        var list = new List<Stmt>();
         var savedEnv = top;
         top = new Env(top);
 
         Match(TokenType.Func);
         var tok = look;
-        Match(TokenType.Id);
+        Match(TokenType.Identifier);
 
-        var funcId = new IdNode(tok.Lexeme, IdType.Func);
+        var funcId = new Identifier(tok.Lexeme, IdType.Func);
         top?.Add(funcId.Name, funcId);
 
         Match(TokenType.LParen);
@@ -221,22 +223,22 @@ public class Parser {
 
         var returnType = ReturnType();
         var b = Block();
-        var funcNode = new FuncNode(funcId.Name, args, returnType, list);
+        var funcNode = new FuncStmt(funcId.Name, args, returnType, b);
         list.Add(funcNode);
         return list;
     }
 
-    public List<IdNode> ArgList() {
-        var args = new List<IdNode>();
+    public List<Identifier> ArgList() {
+        var args = new List<Identifier>();
         if (look.Type == TokenType.RParen) {
             return args;
         }
 
         var tok = look;
-        Match(TokenType.Id);
+        Match(TokenType.Identifier);
         Match(TokenType.Colon);
         var p = GetIdType();
-        var id = new IdNode(tok.Lexeme, p);
+        var id = new Identifier(tok.Lexeme, p);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -245,17 +247,17 @@ public class Parser {
         return args;
     }
 
-    public void ArgRest(List<IdNode> args) {
+    public void ArgRest(List<Identifier> args) {
         if (look.Type != TokenType.Comma) {
             return;
         }
         Advance();
 
         var tok = look;
-        Match(TokenType.Id);
+        Match(TokenType.Identifier);
         Match(TokenType.Colon);
         var p = GetIdType();
-        var id = new IdNode(tok.Lexeme, p);
+        var id = new Identifier(tok.Lexeme, p);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -272,16 +274,15 @@ public class Parser {
         return p;
     }
 
-    public List<Node> Block() {
+    public StmtList? Block() {
         Match(TokenType.LBrace);
         var savedEnv = top;
         top = new Env(top);
-        // VarDecls();
-        // var s = Stmts();
+        var varDecls = VarDeclarations();
+        var s = StatementList();
         Match(TokenType.RBrace);
         top = savedEnv;
-        // return s;
-        return new List<Node>();
+        return s;
     }
 
     public Expr Expression(int precedence = 0) {
@@ -299,153 +300,155 @@ public class Parser {
         var precedence = GetPrecedence(token);
         Advance();
         var rhs = Expression(precedence);
-        return new BinaryOpNode(token, lhs, rhs);
+        return new BinaryOpExpr(token, lhs, rhs);
+    }
+
+    public StmtList? StatementList() {
+        switch (look.Type) {
+        case TokenType.RBrace:
+        case TokenType.Func:
+        case TokenType.EndOfFile:
+            return null;
+        default:
+            return new StmtList(Statement(), StatementList());
+        }
+    }
+
+    public Stmt? Statement() {
+        Expr x;
+        Stmt? s1, s2;
+        Stmt? savedStmt;
+
+        switch (look.Type) {
+        case TokenType.Semicolon:
+            Advance();
+            return null;
+        /*
+        case Tag.If:
+            Match(Tag.If);
+            x = Bool();
+            s1 = Block();
+            if (look.Tag != Tag.Else) {
+                return new If(x, s1);
+            }
+            Match(Tag.Else);
+            s2 = Block();
+            return new Else(x, s1, s2);
+        case Tag.While:
+            var whileNode = new While();
+            savedStmt = Inter.Stmt.Enclosing;
+            Inter.Stmt.Enclosing = whileNode;
+            Match(Tag.While);
+            x = Bool();
+            s1 = Stmt();
+            whileNode.Init(x, s1);
+            Inter.Stmt.Enclosing = savedStmt;
+            return whileNode;
+        case Tag.Do:
+            var loopNode = new DoNode();
+            savedStmt = Inter.Stmt.Enclosing;
+            Inter.Stmt.Enclosing = loopNode;
+            Match(Tag.Loop);
+            s1 = Block();
+            Match(Tag.While);
+            x = Bool();
+            Match(';');
+            loopNode.Init(s1, x);
+            Inter.Stmt.Enclosing = savedStmt;
+            return loopNode;
+        case Tag.Break:
+            Match(Tag.Break);
+            Match(';');
+            return new Break();
+            */
+        case TokenType.LBrace:
+            return Block();
+        // case TokenType.Return:
+        //     return ReturnStmt();
+        default:
+            return Assign();
+        }
+    }
+
+    // public Stmt ReturnStmt() {
+    //     Match(TokenType.Return);
+    //     var t = look;
+    //     Match(TokenType.Id);
+    //     var id = top?.Get(t.Lexeme);
+    //     if (id is null) {
+    //         Error($"{t} undeclared");
+    //     }
+    //     Match(TokenType.Semicolon);
+    //     return new ReturnStmt();
+    // }
+
+    public Stmt? Assign() {
+        Stmt? stmt = null;
+        var t = look;
+        Match(TokenType.Identifier);
+        var id = top?.Get(t.Lexeme);
+        if (id is null) {
+            Error($"{t} undeclared");
+        }
+        if (look.Type == TokenType.Equal) {
+            Advance();
+            stmt = new AssignStmt(id!, Expression());
+        } else {
+            // For array
+            // var x = Offset(id);
+            // Match('=');
+            // stmt = new SetElem(x, Bool());
+        }
+
+        Match(TokenType.Semicolon);
+        return stmt;
     }
 
     /*
-        public Stmt Stmts() {
-            switch (look.Tag) {
-            case '}':
-            case Tag.Func:
-            case Tag.Eof:
-                return Inter.Stmt.Null;
-            default:
-                return new Seq(Stmt(), Stmts());
-            }
-        }
-
-        public Stmt Stmt() {
-            Expr x;
-            Stmt s, s1, s2;
-            Stmt savedStmt;
-
-            switch (look.Tag) {
-            case ';':
-                Move();
-                return Inter.Stmt.Null;
-            case Tag.If:
-                Match(Tag.If);
-                x = Bool();
-                s1 = Block();
-                if (look.Tag != Tag.Else) {
-                    return new If(x, s1);
-                }
-                Match(Tag.Else);
-                s2 = Block();
-                return new Else(x, s1, s2);
-            case Tag.While:
-                var whileNode = new While();
-                savedStmt = Inter.Stmt.Enclosing;
-                Inter.Stmt.Enclosing = whileNode;
-                Match(Tag.While);
-                x = Bool();
-                s1 = Stmt();
-                whileNode.Init(x, s1);
-                Inter.Stmt.Enclosing = savedStmt;
-                return whileNode;
-            case Tag.Loop:
-                var loopNode = new Loop();
-                savedStmt = Inter.Stmt.Enclosing;
-                Inter.Stmt.Enclosing = loopNode;
-                Match(Tag.Loop);
-                s1 = Block();
-                Match(Tag.While);
-                x = Bool();
-                Match(';');
-                loopNode.Init(s1, x);
-                Inter.Stmt.Enclosing = savedStmt;
-                return loopNode;
-            case Tag.Break:
-                Match(Tag.Break);
-                Match(';');
-                return new Break();
-            case '{':
-                return Block();
-            case Tag.Ret:
-                return ReturnStmt();
-            default:
-                return Assign();
-            }
-        }
-
-        public Stmt ReturnStmt() {
-            Match(Tag.Ret);
-            var t = look;
-            Match(Tag.Id);
-            var id = top?.Get(t);
-            if (id is null) {
-                Error($"{id} undeclared");
-            }
-            Match(';');
-            return new Ret();
-        }
-
-        public Stmt Assign() {
-            var stmt = Inter.Stmt.Null;
-            var t = look;
-            Match(Tag.Id);
-            var id = top?.Get(t);
-            if (id is null) {
-                Error($"{t} undeclared");
-            }
-            if (look.Tag == '=') {
-                Move();
-                stmt = new Set(id!, Bool());
-            } else {
-                // For array
-                var x = Offset(id);
-                Match('=');
-                stmt = new SetElem(x, Bool());
-            }
-
-            Match(';');
-            return stmt;
-        }
-
-        public Typing Dims(Typing p) {
-            Match('[');
-            var tok = look;
-            Match(Tag.Num);
-            Match(']');
-            if (look.Tag == '[') {
-                p = Dims(p);
-            }
-            return new Arr(((Num)tok).Value, p);
-        }
-
-        public Expr Term() {
-            var x = Unary();
-            while (look.Tag == '*' || look.Tag == '/') {
+            public Typing Dims(Typing p) {
+                Match('[');
                 var tok = look;
-                Move();
-                x = new Arith(tok, x, Unary());
+                Match(Tag.Num);
+                Match(']');
+                if (look.Tag == '[') {
+                    p = Dims(p);
+                }
+                return new Arr(((Num)tok).Value, p);
             }
-            return x;
-        }
 
-        public Access Offset(Id a) {
-            Expr i;
-            Expr w;
-            Expr t1, t2;
-            Expr loc;
-            var type = a.Typ;
-            Match('[');
-            i = Bool();
-            Match(']');
-            type = ((Arr)type).Of;
-            w = new Constant(type.Width);
-            t1 = new Arith(new Token('*'), i, w);
-            loc = t1;
-            while (look.Tag == '[') {
+            public Expr Term() {
+                var x = Unary();
+                while (look.Tag == '*' || look.Tag == '/') {
+                    var tok = look;
+                    Move();
+                    x = new Arith(tok, x, Unary());
+                }
+                return x;
+            }
+
+            public Access Offset(Id a) {
+                Expr i;
+                Expr w;
+                Expr t1, t2;
+                Expr loc;
+                var type = a.Typ;
                 Match('[');
                 i = Bool();
                 Match(']');
+                type = ((Arr)type).Of;
                 w = new Constant(type.Width);
                 t1 = new Arith(new Token('*'), i, w);
-                t2 = new Arith(new Token('+'), loc, t1);
-                loc = t2;
+                loc = t1;
+                while (look.Tag == '[') {
+                    Match('[');
+                    i = Bool();
+                    Match(']');
+                    w = new Constant(type.Width);
+                    t1 = new Arith(new Token('*'), i, w);
+                    t2 = new Arith(new Token('+'), loc, t1);
+                    loc = t2;
+                }
+                return new Access(a, loc, type);
             }
-            return new Access(a, loc, type);
-        }
-        */
+            */
 }

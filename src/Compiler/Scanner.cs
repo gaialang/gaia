@@ -4,12 +4,11 @@ namespace Gaia.Compiler;
 
 public class Scanner {
     public static int Line { get; private set; } = 1;
-
     // After reading a char, Pos will be the right number.
     public static int Pos { get; private set; } = 0;
+    public bool IsAtEnd { get; private set; } = false;
 
-    private StreamReader source;
-    private bool isAtEnd = false;
+    private readonly StreamReader source;
     private readonly Dictionary<string, TokenType> keywords = new() {
         {"package", TokenType.Package},
         {"var", TokenType.Var},
@@ -18,6 +17,9 @@ public class Scanner {
         {"false", TokenType.False},
         {"func", TokenType.Func},
     };
+    private readonly List<Token> tokens = new();
+    // Current index of the token list.
+    private int current = 0;
 
     public Scanner() {
         source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
@@ -26,7 +28,7 @@ public class Scanner {
     public Token Scan() {
         SkipWhitespace();
 
-        var ch = Advance();
+        var ch = ReadChar();
         switch (ch) {
         /*
         case '&':
@@ -63,44 +65,40 @@ public class Scanner {
         case ':':
             return new Token(TokenType.Colon, ":", Line, Pos);
         case '*':
-            return new Token(TokenType.Multiply, "*", Line, Pos);
+            return new Token(TokenType.Mul, "*", Line, Pos);
         case '+':
             return new Token(TokenType.Plus, "+", Line, Pos);
         case '-':
-            if (Peek() == '>') {
-                Advance();
+            if (MatchChar('>')) {
                 return new Token(TokenType.Arrow, "->", Line, Pos);
             } else {
                 return new Token(TokenType.Minus, "-", Line, Pos);
             }
         case '=':
-            if (Peek() == '=') {
-                Advance();
+            if (MatchChar('=')) {
                 return new Token(TokenType.EqualEqual, "==", Line, Pos);
             } else {
                 return new Token(TokenType.Equal, "=", Line, Pos);
             }
         case '/':
-            if (Peek() == '/') {
-                Advance();
+            if (MatchChar('/')) {
                 // Ignore comments, skip a line and re-scan.
                 SkipLineComment();
                 return Scan();
-            } else if (Peek() == '*') {
-                Advance();
+            } else if (MatchChar('*')) {
                 SkipBlockComment();
                 return Scan();
             } else {
-                return new Token(TokenType.Divide, "/", Line, Pos);
+                return new Token(TokenType.Div, "/", Line, Pos);
             }
         case '<':
-            if (Peek() == '=') {
+            if (MatchChar('=')) {
                 return new Token(TokenType.LessEqualThan, "<=", Line, Pos);
             } else {
                 return new Token(TokenType.LessThan, "<", Line, Pos);
             }
         case '>':
-            if (Peek() == '=') {
+            if (MatchChar('=')) {
                 return new Token(TokenType.GreaterEqualThan, ">=", Line, Pos);
             } else {
                 return new Token(TokenType.GreaterThan, ">", Line, Pos);
@@ -109,32 +107,32 @@ public class Scanner {
             return new Token(TokenType.EndOfFile, "\0", Line, Pos);
         default:
             if (char.IsLetter(ch)) {
-                return Identifier(ch);
+                return ScanIdentifier(ch);
             }
             if (char.IsDigit(ch)) {
-                return Number(ch);
+                return ScanNumber(ch);
             }
 
             throw new Exception($"Near line {Scanner.Line} position {Scanner.Pos}: unknown char.");
         }
     }
 
-    private Token Number(char ch) {
+    private Token ScanNumber(char ch) {
         var b = new StringBuilder();
         b.Append(ch);
-        while (char.IsDigit(Peek())) {
-            b.Append(Advance());
+        while (char.IsDigit(PeekChar())) {
+            b.Append(ReadChar());
         }
 
-        if (Peek() != '.') {
+        if (PeekChar() != '.') {
             var s = b.ToString();
             var v = int.Parse(s);
             return new Token(TokenType.IntLiteral, s, Line, Pos, v);
         }
 
-        b.Append(Advance());
-        while (char.IsDigit(Peek())) {
-            b.Append(Advance());
+        b.Append(ReadChar());
+        while (char.IsDigit(PeekChar())) {
+            b.Append(ReadChar());
         }
 
         var str = b.ToString();
@@ -142,12 +140,12 @@ public class Scanner {
         return new Token(TokenType.FloatLiteral, str, Line, Pos, d);
     }
 
-    private Token Identifier(char ch) {
+    private Token ScanIdentifier(char ch) {
         var b = new StringBuilder();
         b.Append(ch);
 
-        while (char.IsLetterOrDigit(Peek())) {
-            b.Append(Advance());
+        while (char.IsLetterOrDigit(PeekChar())) {
+            b.Append(ReadChar());
         }
 
         var s = b.ToString();
@@ -156,13 +154,13 @@ public class Scanner {
             return new Token(tokenType, s, Line, Pos);
         }
 
-        return new Token(TokenType.Id, s, Line, Pos);
+        return new Token(TokenType.Identifier, s, Line, Pos);
     }
 
-    private char Advance() {
+    private char ReadChar() {
         var n = source.Read();
         if (n == -1) {
-            isAtEnd = true;
+            IsAtEnd = true;
             return '\0';
         }
         var peek = (char)n;
@@ -170,7 +168,17 @@ public class Scanner {
         return peek;
     }
 
-    private char Peek() {
+    private bool MatchChar(char c) {
+        if (PeekChar() == c) {
+            ReadChar();
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    private char PeekChar() {
         var n = source.Peek();
         if (n == -1) {
             return '\0';
@@ -180,18 +188,18 @@ public class Scanner {
     }
 
     private void SkipWhitespace() {
-        while (!isAtEnd) {
-            var c = Peek();
+        while (!IsAtEnd) {
+            var c = PeekChar();
             switch (c) {
             case ' ':
             case '\r':
             case '\t':
-                Advance();
+                ReadChar();
                 break;
             case '\n':
                 Line++;
                 Pos = 0;
-                Advance();
+                ReadChar();
                 break;
             default:
                 return;
@@ -200,37 +208,36 @@ public class Scanner {
     }
 
     private void SkipBlockComment() {
-        while (!isAtEnd) {
-            var c = Peek();
+        while (!IsAtEnd) {
+            var c = PeekChar();
             switch (c) {
             case ' ':
             case '\r':
             case '\t':
-                Advance();
+                ReadChar();
                 break;
             case '\n':
                 Line++;
                 Pos = 0;
-                Advance();
+                ReadChar();
                 break;
             case '*':
-                Advance();
-                if (Peek() == '/') {
-                    Advance();
+                ReadChar();
+                if (MatchChar('/')) {
                     // Reach the end of the block comment.
                     return;
                 }
                 break;
             default:
-                Advance();
+                ReadChar();
                 break;
             }
         }
     }
 
     private void SkipLineComment() {
-        while (!isAtEnd && Peek() != '\n' && Peek() != '\r') {
-            Advance();
+        while (!IsAtEnd && PeekChar() != '\n' && PeekChar() != '\r') {
+            ReadChar();
         }
     }
 }
