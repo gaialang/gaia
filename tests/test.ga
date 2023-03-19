@@ -3,9 +3,13 @@ package main;
 var a: int;
 var b: int = 1 * 2 + 3 / 4;
 
+func main() -> int {
+    //return 0;
+}
+
 // No way
 // dooo
-func main(x: int, y: int, z: int) -> int {
+func foo(x: int, y: int, z: int) -> int {
     var i: int;
     var j: int;
     i=1;

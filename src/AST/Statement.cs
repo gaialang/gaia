@@ -3,5 +3,5 @@
 /// <summary>
 /// Statement.
 /// </summary>
-public abstract class Stmt : Node {
+public abstract class Statement : Node {
 }

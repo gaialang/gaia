@@ -1,13 +1,15 @@
 namespace Gaia.AST;
 
-public sealed class VarStmt : Stmt {
-    public VarStmt(Identifier id, Expr? expr = null) {
+public sealed class VarStatement : Statement {
+    public VarStatement(Identifier id, Expression? expr = null) {
         Id = id;
         Expr = expr;
     }
 
     public Identifier Id { get; }
-    public Expr? Expr { get; }
+    public Expression? Expr { get; }
+
+    public override SyntaxKind Kind { get; protected set; }
 
     public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
         return v.Visit(this, ctx);

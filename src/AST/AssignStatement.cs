@@ -1,13 +1,16 @@
 ﻿namespace Gaia.AST;
 
-public class AssignStmt : Stmt {
+public class AssignStatement : Statement {
     public readonly Identifier Id;
-    public readonly Expr Expr;
+    public readonly Expression Expr;
 
-    public AssignStmt(Identifier id, Expr expr) {
+    public AssignStatement(Identifier id, Expression expr) {
         Id = id;
         Expr = expr;
+        Kind = SyntaxKind.AssignStatement;
     }
+
+    public override SyntaxKind Kind { get; protected set; }
 
     public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
         return v.Visit(this, ctx);

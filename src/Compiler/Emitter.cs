@@ -11,9 +11,9 @@ public class Emitter : Visitor<string, object?> {
         this.writer = writer;
     }
 
-    public string Visit(PackageStmt pkg, object? ctx = null) {
+    public string Visit(PackageStatement pkg, object? ctx = null) {
         writer.WriteLine($"pkg is {pkg.Name};\n");
-        foreach (var expr in pkg.VarOrFuncStatements) {
+        foreach (var expr in pkg.Statements) {
             expr.Accept(this, ctx);
         }
         return "";
@@ -23,7 +23,8 @@ public class Emitter : Visitor<string, object?> {
         return id.Name;
     }
 
-    public string Visit(VarStmt s, object? ctx = null) {
+    public string Visit(VarStatement s, object? ctx = null) {
+        // TODO: other types.
         if (s.Id.IdType == IdType.Int) {
             var name = s.Id.Accept(this, ctx);
             if (s.Expr is null) {
@@ -36,25 +37,25 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(UnaryOpExpr n, object? ctx = null) {
+    public string Visit(UnaryExpression n, object? ctx = null) {
         var operand = n.Operand.Accept(this, ctx);
         return $"{n.Operator.Lexeme}{operand}";
     }
 
-    public string Visit(BinaryOpExpr n, object? ctx = null) {
-        var lhs = n.Lhs.Accept(this, ctx);
-        var rhs = n.Rhs.Accept(this, ctx);
-        return $"{lhs} {n.Operator.Lexeme} {rhs}";
+    public string Visit(BinaryExpression n, object? ctx = null) {
+        var lhs = n.Left.Accept(this, ctx);
+        var rhs = n.Right.Accept(this, ctx);
+        return $"{lhs} {n.OperatorToken.Lexeme} {rhs}";
     }
 
     public string Visit(IntLiteral i, object? ctx = null) {
         return i.Lexeme;
     }
 
-    public string Visit(FuncStmt fn, object? ctx = null) {
+    public string Visit(FuncStatement fn, object? ctx = null) {
         var ret = Util.ConvertType(fn.ReturnType);
         var list = new List<string>();
-        foreach (var item in fn.Arguments) {
+        foreach (var item in fn.Parameters) {
             var t = Util.ConvertType(item.IdType);
             list.Add($"{t} {item.Name}");
         }
@@ -69,20 +70,23 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(WhileStmt n, object? ctx = null) {
+    public string Visit(WhileStatement n, object? ctx = null) {
         return "";
     }
 
-    public string Visit(AssignStmt n, object? ctx = null) {
-        var indentString = GetIndent();
-        writer.Write(indentString);
-        // TODO:
+    public string Visit(AssignStatement a, object? ctx = null) {
+        var name = a.Id.Accept(this, ctx);
+        var val = a.Expr.Accept(this, ctx);
+        writer.WriteLine($"{name} = {val};");
         return "";
     }
 
-    public string Visit(StmtList s, object? ctx = null) {
-        s.Head?.Accept(this, ctx);
-        s.Tail?.Accept(this, ctx);
+    public string Visit(Block b, object? ctx = null) {
+        foreach (var stmt in b.Statements) {
+            var indentString = GetIndent();
+            writer.Write(indentString);
+            stmt.Accept(this, ctx);
+        }
 
         return "";
     }

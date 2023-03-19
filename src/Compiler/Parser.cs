@@ -42,7 +42,7 @@ public sealed class Parser {
     /// Return the next token.
     /// </summary>
     /// <returns></returns>
-    public Token Advance() {
+    private Token Advance() {
         look = lex.Scan();
         return look;
     }
@@ -55,7 +55,7 @@ public sealed class Parser {
     /// Match and move to the next token.
     /// </summary>
     /// <param name="t"></param>
-    public void Match(TokenType t) {
+    private void Match(TokenType t) {
         if (look.Type == t) {
             Advance();
         } else {
@@ -63,7 +63,7 @@ public sealed class Parser {
         }
     }
 
-    public Node ParsePackage() {
+    public Statement ParsePackage() {
         if (look.Type != TokenType.Package) {
             Error("Expected package");
         }
@@ -80,42 +80,47 @@ public sealed class Parser {
         Match(TokenType.Semicolon);
 
         // Toplevel statements.
-        var exprList = VarDeclarations();
-        var f = FuncDeclarations();
-        exprList.AddRange(f);
+        var list = VarDeclarations();
+        var funcList = FuncDeclarations();
+        list.AddRange(funcList);
 
-        var p = new PackageStmt(id.Name, exprList);
+        var p = new PackageStatement(id.Name, list);
         top = savedEnv;
         return p;
     }
 
-    public List<Stmt> VarDeclarations() {
-        var list = new List<Stmt>();
+    public List<Statement> VarDeclarations() {
+        var list = new List<Statement>();
         while (look.Type == TokenType.Var) {
-            Match(TokenType.Var);
-            var tok = look;
-            Match(TokenType.Identifier);
-            Match(TokenType.Colon);
-            var p = GetIdType();
-
-            Expr? s = null;
-            if (look.Type != TokenType.Equal) {
-                Match(TokenType.Semicolon);
-            } else {
-                Advance();
-                s = Expression();
-                Match(TokenType.Semicolon);
-            }
-            var id = new Identifier(tok.Lexeme, p);
-            top?.Add(tok.Lexeme, id);
-            var varNode = new VarStmt(id, s);
-            list.Add(varNode);
+            var varStmt = ParseVarStatement();
+            list.Add(varStmt);
         }
         return list;
     }
 
+    public Statement ParseVarStatement() {
+        Match(TokenType.Var);
+        var tok = look;
+        Match(TokenType.Identifier);
+        Match(TokenType.Colon);
+        var p = GetIdType();
+
+        Expression? s = null;
+        if (look.Type != TokenType.Equal) {
+            Match(TokenType.Semicolon);
+        } else {
+            Advance();
+            s = ParseExpression();
+            Match(TokenType.Semicolon);
+        }
+        var id = new Identifier(tok.Lexeme, p);
+        top?.Add(tok.Lexeme, id);
+        var VarStmt = new VarStatement(id, s);
+        return VarStmt;
+    }
+
     // Get a type for the variable.
-    public IdType GetIdType() {
+    private IdType GetIdType() {
         var p = look.Type;
         switch (p) {
         case TokenType.Int:
@@ -132,13 +137,13 @@ public sealed class Parser {
         // }
     }
 
-    public Expr Unary() {
+    private Expression ParseUnary() {
         if (unaryOperators.Contains(look.Lexeme)) {
             var op = Advance();
-            var operand = Unary();
-            return new UnaryOpExpr(op, operand);
+            var operand = ParseUnary();
+            return new UnaryExpression(op, operand);
         } else {
-            return Primary();
+            return ParsePrimary();
         }
     }
 
@@ -154,8 +159,8 @@ public sealed class Parser {
     /// Factor.
     /// </summary>
     /// <returns></returns>
-    public Expr Primary() {
-        Expr x;
+    private Expression ParsePrimary() {
+        Expression x;
         switch (look.Type) {
         case TokenType.IntLiteral:
             x = new IntLiteral(look.Lexeme, (int)look.Value!);
@@ -201,12 +206,17 @@ public sealed class Parser {
         }
     }
 
-    public List<Stmt> FuncDeclarations() {
-        if (look.Type != TokenType.Func) {
-            Error("func expected");
+    public List<Statement> FuncDeclarations() {
+        var list = new List<Statement>();
+        while (look.Type == TokenType.Func) {
+            var funcStmt = ParseFuncStatement();
+            list.Add(funcStmt);
         }
 
-        var list = new List<Stmt>();
+        return list;
+    }
+
+    public FuncStatement ParseFuncStatement() {
         var savedEnv = top;
         top = new Env(top);
 
@@ -218,17 +228,16 @@ public sealed class Parser {
         top?.Add(funcId.Name, funcId);
 
         Match(TokenType.LParen);
-        var args = ArgList();
+        var args = ParameterList();
         Match(TokenType.RParen);
 
         var returnType = ReturnType();
-        var b = Block();
-        var funcNode = new FuncStmt(funcId.Name, args, returnType, b);
-        list.Add(funcNode);
-        return list;
+        var b = ParseBlock();
+        return new FuncStatement(funcId.Name, args, returnType, b);
     }
 
-    public List<Identifier> ArgList() {
+    // Parameters
+    private List<Identifier> ParameterList() {
         var args = new List<Identifier>();
         if (look.Type == TokenType.RParen) {
             return args;
@@ -242,12 +251,12 @@ public sealed class Parser {
         top?.Add(id.Name, id);
         args.Add(id);
 
-        ArgRest(args);
+        ParameterRest(args);
 
         return args;
     }
 
-    public void ArgRest(List<Identifier> args) {
+    private void ParameterRest(List<Identifier> args) {
         if (look.Type != TokenType.Comma) {
             return;
         }
@@ -261,11 +270,11 @@ public sealed class Parser {
         top?.Add(id.Name, id);
         args.Add(id);
 
-        // Find the rest arguments.
-        ArgRest(args);
+        // Find the rest parameters.
+        ParameterRest(args);
     }
 
-    public IdType ReturnType() {
+    private IdType ReturnType() {
         if (look.Type != TokenType.Arrow) {
             return IdType.Nil;
         }
@@ -274,19 +283,25 @@ public sealed class Parser {
         return p;
     }
 
-    public StmtList? Block() {
+    public Block? ParseBlock() {
         Match(TokenType.LBrace);
         var savedEnv = top;
         top = new Env(top);
+
+        var list = new List<Statement>();
         var varDecls = VarDeclarations();
-        var s = StatementList();
+        list.AddRange(varDecls);
+
+        var statements = StatementList();
+        list.AddRange(statements);
+
         Match(TokenType.RBrace);
         top = savedEnv;
-        return s;
+        return new Block(list);
     }
 
-    public Expr Expression(int precedence = 0) {
-        var lhs = Unary();
+    private Expression ParseExpression(int precedence = 0) {
+        var lhs = ParseUnary();
 
         while (precedence < GetPrecedence(look)) {
             lhs = ParseBinary(lhs);
@@ -295,29 +310,29 @@ public sealed class Parser {
         return lhs;
     }
 
-    private Expr ParseBinary(Expr lhs) {
+    private Expression ParseBinary(Expression lhs) {
         var token = look;
         var precedence = GetPrecedence(token);
         Advance();
-        var rhs = Expression(precedence);
-        return new BinaryOpExpr(token, lhs, rhs);
+        var rhs = ParseExpression(precedence);
+        return new BinaryExpression(token, lhs, rhs);
     }
 
-    public StmtList? StatementList() {
-        switch (look.Type) {
-        case TokenType.RBrace:
-        case TokenType.Func:
-        case TokenType.EndOfFile:
-            return null;
-        default:
-            return new StmtList(Statement(), StatementList());
+    private List<Statement> StatementList() {
+        var list = new List<Statement>();
+        while (look.Type != TokenType.RBrace && look.Type != TokenType.Func && look.Type != TokenType.EndOfFile) {
+            var stmt = ParseStatement();
+            if (stmt is not null) {
+                list.Add(stmt);
+            }
         }
+        return list;
     }
 
-    public Stmt? Statement() {
-        Expr x;
-        Stmt? s1, s2;
-        Stmt? savedStmt;
+    private Statement? ParseStatement() {
+        Expression x;
+        Statement? s1, s2;
+        Statement? savedStmt;
 
         switch (look.Type) {
         case TokenType.Semicolon:
@@ -362,11 +377,13 @@ public sealed class Parser {
             return new Break();
             */
         case TokenType.LBrace:
-            return Block();
+            return ParseBlock();
         // case TokenType.Return:
         //     return ReturnStmt();
+        case TokenType.Var:
+            return ParseVarStatement();
         default:
-            return Assign();
+            return ParseAssign();
         }
     }
 
@@ -382,8 +399,8 @@ public sealed class Parser {
     //     return new ReturnStmt();
     // }
 
-    public Stmt? Assign() {
-        Stmt? stmt = null;
+    private Statement? ParseAssign() {
+        Statement? stmt = null;
         var t = look;
         Match(TokenType.Identifier);
         var id = top?.Get(t.Lexeme);
@@ -392,7 +409,7 @@ public sealed class Parser {
         }
         if (look.Type == TokenType.Equal) {
             Advance();
-            stmt = new AssignStmt(id!, Expression());
+            stmt = new AssignStatement(id!, ParseExpression());
         } else {
             // For array
             // var x = Offset(id);
