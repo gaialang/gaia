@@ -80,25 +80,40 @@ public sealed class Parser {
         Match(TokenType.Semicolon);
 
         // Toplevel statements.
-        var list = VarDeclarations();
+        var list = ImportDeclarations();
+        var varList = VarDeclarations();
+        list.AddRange(varList);
         var funcList = FuncDeclarations();
         list.AddRange(funcList);
 
-        var p = new PackageStatement(id.Name, list);
+        var p = new PackageDeclaration(id.Name, list);
         top = savedEnv;
         return p;
+    }
+
+    public List<Statement> ImportDeclarations() {
+        var list = new List<Statement>();
+        while (look.Type == TokenType.ImportKeyword) {
+            Advance();
+            var t = look;
+            Match(TokenType.StringLiteral);
+            Match(TokenType.Semicolon);
+            var i = new ImportDeclaration(t.Lexeme);
+            list.Add(i);
+        }
+        return list;
     }
 
     public List<Statement> VarDeclarations() {
         var list = new List<Statement>();
         while (look.Type == TokenType.VarKeyword) {
-            var varStmt = ParseVarStatement();
+            var varStmt = ParseVar();
             list.Add(varStmt);
         }
         return list;
     }
 
-    public Statement ParseVarStatement() {
+    public Statement ParseVar() {
         Match(TokenType.VarKeyword);
         var tok = look;
         Match(TokenType.Identifier);
@@ -115,7 +130,7 @@ public sealed class Parser {
         }
         var id = new Identifier(tok.Lexeme, p);
         top?.Add(tok.Lexeme, id);
-        var VarStmt = new VarStatement(id, s);
+        var VarStmt = new VariableDeclaration(id, s);
         return VarStmt;
     }
 
@@ -216,7 +231,7 @@ public sealed class Parser {
         return list;
     }
 
-    public FuncStatement ParseFuncStatement() {
+    public FunctionDeclaration ParseFuncStatement() {
         var savedEnv = top;
         top = new Env(top);
 
@@ -233,7 +248,7 @@ public sealed class Parser {
 
         var returnType = ReturnType();
         var b = ParseBlock();
-        return new FuncStatement(funcId.Name, args, returnType, b);
+        return new FunctionDeclaration(funcId.Name, args, returnType, b);
     }
 
     // Parameters
@@ -284,7 +299,7 @@ public sealed class Parser {
         return p;
     }
 
-    public Block? ParseBlock() {
+    public Block ParseBlock() {
         Match(TokenType.LBrace);
         var savedEnv = top;
         top = new Env(top);
@@ -331,14 +346,16 @@ public sealed class Parser {
     }
 
     private Statement? ParseStatement() {
-        Expression x;
-        Statement? s1, s2;
-        Statement? savedStmt;
-
         switch (look.Type) {
         case TokenType.Semicolon:
             Advance();
             return null;
+        case TokenType.WhileKeyword:
+            Advance();
+            var x = ParseExpression();
+            var b = ParseBlock();
+            var stmt = new WhileStatement(x, b);
+            return stmt;
         /*
         case Tag.If:
             Match(Tag.If);
@@ -350,28 +367,6 @@ public sealed class Parser {
             Match(Tag.Else);
             s2 = Block();
             return new Else(x, s1, s2);
-        case Tag.While:
-            var whileNode = new While();
-            savedStmt = Inter.Stmt.Enclosing;
-            Inter.Stmt.Enclosing = whileNode;
-            Match(Tag.While);
-            x = Bool();
-            s1 = Stmt();
-            whileNode.Init(x, s1);
-            Inter.Stmt.Enclosing = savedStmt;
-            return whileNode;
-        case Tag.Do:
-            var loopNode = new DoNode();
-            savedStmt = Inter.Stmt.Enclosing;
-            Inter.Stmt.Enclosing = loopNode;
-            Match(Tag.Loop);
-            s1 = Block();
-            Match(Tag.While);
-            x = Bool();
-            Match(';');
-            loopNode.Init(s1, x);
-            Inter.Stmt.Enclosing = savedStmt;
-            return loopNode;
         case Tag.Break:
             Match(Tag.Break);
             Match(';');
@@ -380,15 +375,15 @@ public sealed class Parser {
         case TokenType.LBrace:
             return ParseBlock();
         case TokenType.ReturnKeyword:
-            return ReturnStmt();
+            return ParseReturn();
         case TokenType.VarKeyword:
-            return ParseVarStatement();
+            return ParseVar();
         default:
             return ParseAssign();
         }
     }
 
-    public Statement ReturnStmt() {
+    public Statement ParseReturn() {
         Match(TokenType.ReturnKeyword);
 
         if (look.Type != TokenType.Semicolon) {

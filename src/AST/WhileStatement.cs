@@ -1,12 +1,14 @@
 namespace Gaia.AST;
 
 public sealed class WhileStatement : Statement {
-    public WhileStatement(string name) {
-        Name = name;
+    public WhileStatement(Expression expr, Block body) {
+        Expr = expr;
+        Body = body;
         Kind = SyntaxKind.WhileStatement;
     }
 
-    public string Name { get; }
+    public Expression Expr { get; }
+    public Block Body { get; }
 
     public override SyntaxKind Kind { get; protected set; }
 

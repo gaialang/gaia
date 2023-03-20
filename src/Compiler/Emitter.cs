@@ -11,11 +11,15 @@ public class Emitter : Visitor<string, object?> {
         this.writer = writer;
     }
 
-    public string Visit(PackageStatement pkg, object? ctx = null) {
-        writer.WriteLine($"pkg is {pkg.Name};\n");
+    public string Visit(PackageDeclaration pkg, object? ctx = null) {
         foreach (var expr in pkg.Statements) {
             expr.Accept(this, ctx);
         }
+        return "";
+    }
+
+    public string Visit(ImportDeclaration node, object? ctx = null) {
+        writer.WriteLine($"#include <{node.ModuleSpecifier}.h>\n");
         return "";
     }
 
@@ -23,16 +27,14 @@ public class Emitter : Visitor<string, object?> {
         return id.Name;
     }
 
-    public string Visit(VarStatement s, object? ctx = null) {
-        // TODO: other types.
-        if (s.Id.IdType == IdType.Int) {
-            var name = s.Id.Accept(this, ctx);
-            if (s.Expr is null) {
-                writer.WriteLine($"int {name};");
-            } else {
-                var val = s.Expr.Accept(this, ctx);
-                writer.WriteLine($"int {name} = {val};");
-            }
+    public string Visit(VariableDeclaration s, object? ctx = null) {
+        var t = Util.ConvertType(s.Id.IdType);
+        var name = s.Id.Accept(this, ctx);
+        if (s.Expr is null) {
+            writer.WriteLine($"{t} {name};");
+        } else {
+            var val = s.Expr.Accept(this, ctx);
+            writer.WriteLine($"{t} {name} = {val};");
         }
         return "";
     }
@@ -52,7 +54,7 @@ public class Emitter : Visitor<string, object?> {
         return i.Lexeme;
     }
 
-    public string Visit(FuncStatement fn, object? ctx = null) {
+    public string Visit(FunctionDeclaration fn, object? ctx = null) {
         var ret = Util.ConvertType(fn.ReturnType);
         var list = new List<string>();
         foreach (var item in fn.Parameters) {
@@ -85,8 +87,8 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(AssignStatement node, object? ctx = null) {
-        var name = node.Id.Accept(this, ctx);
-        var val = node.Expr.Accept(this, ctx);
+        var name = node.LValue.Accept(this, ctx);
+        var val = node.RValue.Accept(this, ctx);
         writer.WriteLine($"{name} = {val};");
         return "";
     }

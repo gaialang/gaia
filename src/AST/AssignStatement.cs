@@ -1,12 +1,12 @@
 ﻿namespace Gaia.AST;
 
 public class AssignStatement : Statement {
-    public readonly Identifier Id;
-    public readonly Expression Expr;
+    public readonly Identifier LValue;
+    public readonly Expression RValue;
 
-    public AssignStatement(Identifier id, Expression expr) {
-        Id = id;
-        Expr = expr;
+    public AssignStatement(Identifier lvalue, Expression rvalue) {
+        LValue = lvalue;
+        RValue = rvalue;
         Kind = SyntaxKind.AssignStatement;
     }
 

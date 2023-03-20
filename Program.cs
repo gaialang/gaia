@@ -7,6 +7,6 @@ var scanner = new Scanner();
 var parser = new Parser(scanner);
 var expr = parser.Parse();
 var e = new Emitter(new ConsoleWriter());
-e.Visit((PackageStatement)expr);
+e.Visit((PackageDeclaration)expr);
 
 Console.WriteLine(">>>");

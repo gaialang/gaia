@@ -12,4 +12,5 @@ public enum SyntaxKind {
     AssignStatement,
     ReturnStatement,
     WhileStatement,
+    ImportDeclaration,
 }

@@ -1,5 +1,7 @@
 package main;
 
+import "stdio";
+
 var a: int;
 var b: int = 1 * 2 + 3 / 4;
 
@@ -17,18 +19,17 @@ func foo(x: int, y: int, z: int) -> int {
     // hhh
     /*
     while true {
-        loop {
-            i=i+1;
-        } while i<j;
         if i>=j {
             break;
         }
     }
+    do {
+        i=i+1;
+    } while i<j;
     if i>=j {
         i=2;
     } else {
         i=3;
-    }
+    }*/
     return i;
-    */
 }

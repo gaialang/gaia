@@ -1,9 +1,10 @@
 namespace Gaia.AST;
 
-public sealed class VarStatement : Statement {
-    public VarStatement(Identifier id, Expression? expr = null) {
+public sealed class VariableDeclaration : Statement {
+    public VariableDeclaration(Identifier id, Expression? expr = null) {
         Id = id;
         Expr = expr;
+        Kind = SyntaxKind.VariableDeclaration;
     }
 
     public Identifier Id { get; }

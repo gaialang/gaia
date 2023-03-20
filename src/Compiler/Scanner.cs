@@ -17,6 +17,7 @@ public class Scanner {
         {"false", TokenType.FalseKeyword},
         {"func", TokenType.FuncKeyword},
         {"return", TokenType.ReturnKeyword},
+        {"import", TokenType.ImportKeyword},
     };
     private readonly List<Token> tokens = new();
     // Current index of the token list.
@@ -51,6 +52,8 @@ public class Scanner {
                 return new Token('!');
             }
             */
+        case '"':
+            return ScanString();
         case ',':
             return new Token(TokenType.Comma, ",", Line, Pos);
         case '(':
@@ -158,6 +161,19 @@ public class Scanner {
         return new Token(TokenType.Identifier, s, Line, Pos);
     }
 
+    private Token ScanString() {
+        var b = new StringBuilder();
+
+        while (PeekChar() != '"') {
+            b.Append(ReadChar());
+        }
+        ReadChar();
+
+        var s = b.ToString();
+
+        return new Token(TokenType.StringLiteral, s, Line, Pos);
+    }
+
     private char ReadChar() {
         var n = source.Read();
         if (n == -1) {
@@ -237,7 +253,7 @@ public class Scanner {
     }
 
     private void SkipLineComment() {
-        while (!IsAtEnd && PeekChar() != '\n' && PeekChar() != '\r') {
+        while (!IsAtEnd && PeekChar() != '\n') {
             ReadChar();
         }
     }

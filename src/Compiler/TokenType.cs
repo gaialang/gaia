@@ -33,4 +33,7 @@ public enum TokenType {
     ReturnKeyword,
     LBracket,
     RBracket,
+    WhileKeyword,
+    ImportKeyword,
+    StringLiteral,
 }
