@@ -181,27 +181,27 @@ public sealed class Parser {
             x = new IntLiteral(look.Lexeme, (int)look.Value!);
             Advance();
             return x;
+        case TokenType.LParen:
+            // Ignore unnecessary parens.
+            Advance();
+            x = ParseExpression();
+            Match(TokenType.RParen);
+            return x;
         /*
-    case '(':
-        // Ignore unnecessary parens.
-        Move();
-        x = Bool();
-        Match(')');
-        return x;
     case Tag.Float:
         x = new Constant(look, Typing.Float64);
         Move();
         return x;
-    case Tag.True:
-        x = Constant.True;
-        Move();
-        return x;
-    case Tag.False:
-        x = Constant.False;
-        Move();
-        return x;
 
         */
+        case TokenType.TrueKeyword:
+            x = new BoolLiteral(look.Lexeme, true);
+            Advance();
+            return x;
+        case TokenType.FalseKeyword:
+            x = new BoolLiteral(look.Lexeme, false);
+            Advance();
+            return x;
         case TokenType.Identifier:
             var id = top?.Get(look.Lexeme);
             if (id is null) {
@@ -352,26 +352,32 @@ public sealed class Parser {
             return null;
         case TokenType.WhileKeyword:
             Advance();
-            var x = ParseExpression();
-            var b = ParseBlock();
-            var stmt = new WhileStatement(x, b);
-            return stmt;
-        /*
-        case Tag.If:
-            Match(Tag.If);
-            x = Bool();
-            s1 = Block();
-            if (look.Tag != Tag.Else) {
-                return new If(x, s1);
+            var whileExpr = ParseExpression();
+            var whileBlock = ParseBlock();
+            var whileStmt = new WhileStatement(whileExpr, whileBlock);
+            return whileStmt;
+        case TokenType.IfKeyword:
+            Advance();
+            var ifExpr = ParseExpression();
+            var ifBlock = ParseBlock();
+            if (look.Type != TokenType.ElseKeyword) {
+                return new IfStatement(ifExpr, ifBlock);
             }
-            Match(Tag.Else);
-            s2 = Block();
-            return new Else(x, s1, s2);
-        case Tag.Break:
-            Match(Tag.Break);
-            Match(';');
-            return new Break();
-            */
+            Match(TokenType.ElseKeyword);
+            var elseBlock = ParseBlock();
+            var elseStmt = new ElseStatement(elseBlock);
+            return new IfStatement(ifExpr, ifBlock, elseStmt);
+        case TokenType.BreakKeyword:
+            Advance();
+            Match(TokenType.Semicolon);
+            return new BreakStatement();
+        case TokenType.DoKeyword:
+            Advance();
+            var doBlock = ParseBlock();
+            Match(TokenType.WhileKeyword);
+            var doExpr = ParseExpression();
+            Match(TokenType.Semicolon);
+            return new DoStatement(doBlock, doExpr);
         case TokenType.LBrace:
             return ParseBlock();
         case TokenType.ReturnKeyword:

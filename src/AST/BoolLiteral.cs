@@ -1,14 +1,14 @@
-﻿namespace Gaia.AST;
+namespace Gaia.AST;
 
-public sealed class IntLiteral : Expression {
-    public IntLiteral(string lexeme, int value) {
+public sealed class BoolLiteral : Expression {
+    public BoolLiteral(string lexeme, bool value) {
         Lexeme = lexeme;
         Value = value;
-        Kind = SyntaxKind.IntLiteral;
+        Kind = SyntaxKind.BoolLiteral;
     }
 
     public string Lexeme { get; private set; }
-    public int Value { get; private set; }
+    public bool Value { get; private set; }
 
     public override SyntaxKind Kind { get; protected set; }
 

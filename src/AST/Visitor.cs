@@ -13,4 +13,9 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(AssignStatement node, TContext ctx);
     TResult Visit(ReturnStatement node, TContext ctx);
     TResult Visit(ImportDeclaration node, TContext ctx);
+    TResult Visit(BoolLiteral node, TContext ctx);
+    TResult Visit(IfStatement node, TContext ctx);
+    TResult Visit(BreakStatement node, TContext ctx);
+    TResult Visit(DoStatement node, TContext ctx);
+    TResult Visit(ElseStatement node, TContext ctx);
 }

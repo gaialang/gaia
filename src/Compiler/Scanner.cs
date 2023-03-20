@@ -18,6 +18,12 @@ public class Scanner {
         {"func", TokenType.FuncKeyword},
         {"return", TokenType.ReturnKeyword},
         {"import", TokenType.ImportKeyword},
+        {"if", TokenType.IfKeyword},
+        {"else", TokenType.ElseKeyword},
+        {"while", TokenType.WhileKeyword},
+        {"do", TokenType.DoKeyword},
+        {"for", TokenType.ForKeyword},
+        {"break", TokenType.BreakKeyword},
     };
     private readonly List<Token> tokens = new();
     // Current index of the token list.

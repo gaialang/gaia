@@ -55,7 +55,6 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(FunctionDeclaration fn, object? ctx = null) {
-        var ret = Util.ConvertType(fn.ReturnType);
         var list = new List<string>();
         foreach (var item in fn.Parameters) {
             var t = Util.ConvertType(item.IdType);
@@ -63,16 +62,24 @@ public class Emitter : Visitor<string, object?> {
         }
         var args = string.Join(", ", list);
 
-        writer.WriteLine();
-        writer.WriteLine($"{ret} {fn.Name}({args}) {{");
+        var ret = Util.ConvertType(fn.ReturnType);
+        writer.WriteLine($"\n{ret} {fn.Name}({args}) {{");
         indent++;
         fn.Body?.Accept(this, ctx);
-        indent--;
         writer.WriteLine("}");
+        indent--;
         return "";
     }
 
     public string Visit(WhileStatement node, object? ctx = null) {
+        var expr = node.Expression.Accept(this, ctx);
+        writer.WriteLine($"while ({expr}) {{");
+        indent++;
+        node.Body.Accept(this, ctx);
+        indent--;
+        var indentString = GetIndent();
+        writer.Write(indentString);
+        writer.WriteLine("}");
         return "";
     }
 
@@ -100,6 +107,58 @@ public class Emitter : Visitor<string, object?> {
             stmt.Accept(this, ctx);
         }
 
+        return "";
+    }
+
+    public string Visit(BoolLiteral node, object? ctx = null) {
+        return node.Lexeme;
+    }
+
+    public string Visit(BreakStatement node, object? ctx = null) {
+        writer.WriteLine("break;");
+        return "";
+    }
+
+    public string Visit(IfStatement node, object? ctx = null) {
+        var expr = node.Expression.Accept(this, ctx);
+        writer.WriteLine($"if ({expr}) {{");
+        indent++;
+        node.Body.Accept(this, ctx);
+        if (node.ElseStatement is null) {
+            indent--;
+            var indentString = GetIndent();
+            writer.Write(indentString);
+            writer.WriteLine("}");
+        } else {
+            indent--;
+            var indentString = GetIndent();
+            writer.Write(indentString);
+            writer.Write("} ");
+            node.ElseStatement.Accept(this, ctx);
+        }
+        return "";
+    }
+
+    public string Visit(ElseStatement node, object? ctx = null) {
+        writer.WriteLine("else {");
+        indent++;
+        node.Body.Accept(this, ctx);
+        indent--;
+        var indentString = GetIndent();
+        writer.Write(indentString);
+        writer.WriteLine("}");
+        return "";
+    }
+
+    public string Visit(DoStatement node, object? ctx = null) {
+        writer.WriteLine("do {");
+        indent++;
+        node.Body.Accept(this, ctx);
+        indent--;
+        var indentString = GetIndent();
+        writer.Write(indentString);
+        var expr = node.Expression.Accept(this, ctx);
+        writer.WriteLine($"}} while ({expr});");
         return "";
     }
 

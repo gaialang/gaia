@@ -11,25 +11,24 @@ func main() -> int {
 
 // No way
 // dooo
-func foo(x: int, y: int, z: int) -> int {
+func foo(x: int, y: int) -> int {
     var i: int;
     var j: int;
     i=1;
-    j=i+3;
-    // hhh
-    /*
+    j=6;
+    if i>=j {
+        i=2;
+    } else {
+        i=3;
+    }
     while true {
+        i = i+1;
         if i>=j {
             break;
         }
     }
     do {
         i=i+1;
-    } while i<j;
-    if i>=j {
-        i=2;
-    } else {
-        i=3;
-    }*/
+    } while i<10;
     return i;
 }

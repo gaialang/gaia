@@ -13,4 +13,9 @@ public enum SyntaxKind {
     ReturnStatement,
     WhileStatement,
     ImportDeclaration,
+    BoolLiteral,
+    DoStatement,
+    BreakStatement,
+    IfStatement,
+    ElseStatement,
 }

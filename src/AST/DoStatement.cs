@@ -1,14 +1,14 @@
 namespace Gaia.AST;
 
-public sealed class WhileStatement : Statement {
-    public WhileStatement(Expression expr, Block body) {
-        Expression = expr;
-        Body = body;
-        Kind = SyntaxKind.WhileStatement;
-    }
+public class DoStatement : Statement {
+    public Expression Expression;
+    public Block Body;
 
-    public Expression Expression { get; }
-    public Block Body { get; }
+    public DoStatement(Block body, Expression expr) {
+        Body = body;
+        Expression = expr;
+        Kind = SyntaxKind.DoStatement;
+    }
 
     public override SyntaxKind Kind { get; protected set; }
 

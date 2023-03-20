@@ -36,4 +36,9 @@ public enum TokenType {
     WhileKeyword,
     ImportKeyword,
     StringLiteral,
+    IfKeyword,
+    ForKeyword,
+    DoKeyword,
+    ElseKeyword,
+    BreakKeyword,
 }
