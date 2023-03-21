@@ -30,7 +30,8 @@ public class Scanner {
     private int current = 0;
 
     public Scanner() {
-        source = new StreamReader(AppContext.BaseDirectory + "tests/test.ga");
+        var path = Path.Combine(AppContext.BaseDirectory, "tests/test.ga");
+        source = new StreamReader(path);
     }
 
     public Token Scan() {

@@ -12,6 +12,9 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
+        // Preclude headers.
+        writer.WriteLine("#include <stdbool.h>");
+
         foreach (var expr in pkg.Statements) {
             expr.Accept(this, ctx);
         }

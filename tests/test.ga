@@ -2,7 +2,7 @@ package main;
 
 import "stdio";
 
-var a: int;
+var a: int = 0;
 var b: int = 1 * 2 + 3 / 4;
 
 func main() -> int {

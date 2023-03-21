@@ -6,6 +6,7 @@
 # Compiled
 bin/
 obj/
+out/
 
 # User-specific
 *.DotSettings
