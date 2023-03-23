@@ -42,13 +42,12 @@ public sealed class Parser {
     /// Return the next token.
     /// </summary>
     /// <returns></returns>
-    private Token Advance() {
+    private void Advance() {
         look = lex.Scan();
-        return look;
     }
 
     public static void Error(string s) {
-        throw new Exception($"Near line {Scanner.Line} position {Scanner.Pos}: {s}.");
+        throw new Exception($"Near line {Scanner.Line} column {Scanner.Column}: {s}.");
     }
 
     /// <summary>
@@ -59,7 +58,7 @@ public sealed class Parser {
         if (look.Type == t) {
             Advance();
         } else {
-            Error($"token unmatched: {look} != {t}");
+            Error($"expected {t}, but got {look}");
         }
     }
 
@@ -75,7 +74,7 @@ public sealed class Parser {
         Match(TokenType.PackageKeyword);
         var tok = look;
         Match(TokenType.Identifier);
-        var id = new Identifier(tok.Lexeme, IdType.Package);
+        var id = new Identifier(tok.Lexeme, TypeInfo.Package);
         top?.Add(tok.Lexeme, id);
         Match(TokenType.Semicolon);
 
@@ -95,10 +94,10 @@ public sealed class Parser {
         var list = new List<Statement>();
         while (look.Type == TokenType.ImportKeyword) {
             Advance();
-            var t = look;
+            var tok = look;
             Match(TokenType.StringLiteral);
             Match(TokenType.Semicolon);
-            var i = new ImportDeclaration(t.Lexeme);
+            var i = new ImportDeclaration(tok.Lexeme);
             list.Add(i);
         }
         return list;
@@ -118,7 +117,7 @@ public sealed class Parser {
         var tok = look;
         Match(TokenType.Identifier);
         Match(TokenType.Colon);
-        var p = GetIdType();
+        var p = GetTypeInfo();
 
         Expression? s = null;
         if (look.Type != TokenType.Equal) {
@@ -135,26 +134,71 @@ public sealed class Parser {
     }
 
     // Get a type for the variable.
-    private IdType GetIdType() {
-        var p = look.Type;
-        switch (p) {
+    private TypeInfo GetTypeInfo() {
+        TypeInfo p;
+        switch (look.Type) {
         case TokenType.IntKeyword:
+            p = TypeInfo.Int;
             Advance();
-            return IdType.Int;
+            break;
         default:
             Error("no valid type");
             throw new Exception();
         }
-        // if (look.Tag != '[') {
-        //     return p;
-        // } else {
-        //     return Dims(p);
-        // }
+
+        if (look.Type != TokenType.LBracket) {
+            return p;
+        } else {
+            return ParseArray(p);
+        }
+    }
+
+    /// <summary>
+    /// Array types.
+    /// </summary>
+    /// <param name="p"></param>
+    /// <returns></returns>
+    private TypeInfo ParseArray(TypeInfo p) {
+        Match(TokenType.LBracket);
+        var tok = look;
+        switch (tok.Type) {
+        case TokenType.IntLiteral:
+            Advance();
+            Match(TokenType.RBracket);
+            return ParseIndexedAccess(p, tok.Lexeme);
+        case TokenType.RBracket:
+            Advance();
+            return ParseArrayType(p);
+        default:
+            Error("array type error");
+            return null;
+        }
+    }
+
+    private ArrayType ParseArrayType(TypeInfo a) {
+        if (look.Type == TokenType.LBracket) {
+            Advance();
+            Match(TokenType.RBracket);
+            a = ParseArrayType(a);
+        }
+        return new ArrayType(a);
+    }
+
+    private IndexedAccessType ParseIndexedAccess(TypeInfo p, string s) {
+        if (look.Type == TokenType.LBracket) {
+            Advance();
+            var tok = look;
+            Match(TokenType.IntLiteral);
+            Match(TokenType.RBracket);
+            p = ParseIndexedAccess(p, tok.Lexeme);
+        }
+        return new IndexedAccessType(p, s);
     }
 
     private Expression ParseUnary() {
         if (unaryOperators.Contains(look.Lexeme)) {
-            var op = Advance();
+            Advance();
+            var op = look;
             var operand = ParseUnary();
             return new UnaryExpression(op, operand);
         } else {
@@ -177,29 +221,26 @@ public sealed class Parser {
     private Expression ParsePrimary() {
         Expression x;
         switch (look.Type) {
-        case TokenType.IntLiteral:
-            x = new IntLiteral(look.Lexeme, (int)look.Value!);
-            Advance();
-            return x;
         case TokenType.LParen:
             // Ignore unnecessary parens.
             Advance();
             x = ParseExpression();
             Match(TokenType.RParen);
             return x;
-        /*
-    case Tag.Float:
-        x = new Constant(look, Typing.Float64);
-        Move();
-        return x;
-
-        */
+        case TokenType.IntLiteral:
+            x = new IntLiteral(look.Lexeme, look.Pos);
+            Advance();
+            return x;
+        case TokenType.FloatLiteral:
+            x = new FloatLiteral(look.Lexeme, look.Pos);
+            Advance();
+            return x;
         case TokenType.TrueKeyword:
-            x = new BoolLiteral(look.Lexeme, true);
+            x = new BoolLiteral(look.Lexeme);
             Advance();
             return x;
         case TokenType.FalseKeyword:
-            x = new BoolLiteral(look.Lexeme, false);
+            x = new BoolLiteral(look.Lexeme);
             Advance();
             return x;
         case TokenType.Identifier:
@@ -208,11 +249,11 @@ public sealed class Parser {
                 Error($"{look} undeclared");
             }
             Advance();
+
             if (look.Type != TokenType.LBracket) {
                 return id!;
             } else {
-                // return Offset(id!);
-                return null;
+                return Offset(id!);
             }
         default:
             Error("Primary has a bug");
@@ -239,7 +280,7 @@ public sealed class Parser {
         var tok = look;
         Match(TokenType.Identifier);
 
-        var funcId = new Identifier(tok.Lexeme, IdType.Func);
+        var funcId = new Identifier(tok.Lexeme, TypeInfo.Func);
         top?.Add(funcId.Name, funcId);
 
         Match(TokenType.LParen);
@@ -248,7 +289,7 @@ public sealed class Parser {
 
         var returnType = ReturnType();
         var b = ParseBlock();
-        return new FunctionDeclaration(funcId.Name, args, returnType, b);
+        return new FunctionDeclaration(funcId, args, returnType, b);
     }
 
     // Parameters
@@ -261,13 +302,12 @@ public sealed class Parser {
         var tok = look;
         Match(TokenType.Identifier);
         Match(TokenType.Colon);
-        var p = GetIdType();
+        var p = GetTypeInfo();
         var id = new Identifier(tok.Lexeme, p);
         top?.Add(id.Name, id);
         args.Add(id);
 
         ParameterRest(args);
-
         return args;
     }
 
@@ -277,11 +317,11 @@ public sealed class Parser {
         }
 
         Match(TokenType.Comma);
-        var t = look;
+        var tok = look;
         Match(TokenType.Identifier);
         Match(TokenType.Colon);
-        var p = GetIdType();
-        var id = new Identifier(t.Lexeme, p);
+        var p = GetTypeInfo();
+        var id = new Identifier(tok.Lexeme, p);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -289,13 +329,13 @@ public sealed class Parser {
         ParameterRest(args);
     }
 
-    private IdType ReturnType() {
+    private TypeInfo ReturnType() {
         if (look.Type != TokenType.Arrow) {
-            return IdType.Nil;
+            return new TypeInfo(TypeKind.Nil);
         }
 
         Match(TokenType.Arrow);
-        var p = GetIdType();
+        var p = GetTypeInfo();
         return p;
     }
 
@@ -327,11 +367,11 @@ public sealed class Parser {
     }
 
     private Expression ParseBinary(Expression lhs) {
-        var token = look;
-        var precedence = GetPrecedence(token);
+        var tok = look;
+        var precedence = GetPrecedence(tok);
         Advance();
         var rhs = ParseExpression(precedence);
-        return new BinaryExpression(token, lhs, rhs);
+        return new BinaryExpression(tok, lhs, rhs);
     }
 
     private List<Statement> StatementList() {
@@ -357,16 +397,7 @@ public sealed class Parser {
             var whileStmt = new WhileStatement(whileExpr, whileBlock);
             return whileStmt;
         case TokenType.IfKeyword:
-            Advance();
-            var ifExpr = ParseExpression();
-            var ifBlock = ParseBlock();
-            if (look.Type != TokenType.ElseKeyword) {
-                return new IfStatement(ifExpr, ifBlock);
-            }
-            Match(TokenType.ElseKeyword);
-            var elseBlock = ParseBlock();
-            var elseStmt = new ElseStatement(elseBlock);
-            return new IfStatement(ifExpr, ifBlock, elseStmt);
+            return ParseIfStatement();
         case TokenType.BreakKeyword:
             Advance();
             Match(TokenType.Semicolon);
@@ -389,6 +420,24 @@ public sealed class Parser {
         }
     }
 
+    private Statement ParseIfStatement() {
+        Match(TokenType.IfKeyword);
+        var expr = ParseExpression();
+        var thenBlock = ParseBlock();
+        if (look.Type != TokenType.ElseKeyword) {
+            return new IfStatement(expr, thenBlock);
+        }
+        Match(TokenType.ElseKeyword);
+
+        if (look.Type != TokenType.IfKeyword) {
+            var elseBlock = ParseBlock();
+            return new IfStatement(expr, thenBlock, elseBlock);
+        }
+
+        var ifStmt = ParseIfStatement();
+        return new IfStatement(expr, thenBlock, ifStmt);
+    }
+
     public Statement ParseReturn() {
         Match(TokenType.ReturnKeyword);
 
@@ -403,71 +452,36 @@ public sealed class Parser {
 
     private Statement? ParseAssign() {
         Statement? stmt = null;
-        var t = look;
+        var tok = look;
         Match(TokenType.Identifier);
-        var id = top?.Get(t.Lexeme);
+        var id = top?.Get(tok.Lexeme);
         if (id is null) {
-            Error($"{t} undeclared");
+            Error($"{tok} undeclared");
         }
         if (look.Type == TokenType.Equal) {
             Advance();
             stmt = new AssignStatement(id!, ParseExpression());
         } else {
             // For array
-            // var x = Offset(id);
-            // Match('=');
-            // stmt = new SetElem(x, Bool());
+            var x = Offset(id!);
+            Match(TokenType.Equal);
+            stmt = new ElementAssignStatement(x, ParseExpression());
         }
 
         Match(TokenType.Semicolon);
         return stmt;
     }
 
-    /*
-            public Typing Dims(Typing p) {
-                Match('[');
-                var tok = look;
-                Match(Tag.Num);
-                Match(']');
-                if (look.Tag == '[') {
-                    p = Dims(p);
-                }
-                return new Arr(((Num)tok).Value, p);
-            }
+    public ElementAccessExpression Offset(Identifier id) {
+        ElementAccessExpression access;
 
-            public Expr Term() {
-                var x = Unary();
-                while (look.Tag == '*' || look.Tag == '/') {
-                    var tok = look;
-                    Move();
-                    x = new Arith(tok, x, Unary());
-                }
-                return x;
-            }
+        do {
+            Match(TokenType.LBracket);
+            var index = ParseExpression();
+            Match(TokenType.RBracket);
+            access = new ElementAccessExpression(id, index);
+        } while (look.Type == TokenType.LBracket);
 
-            public Access Offset(Id a) {
-                Expr i;
-                Expr w;
-                Expr t1, t2;
-                Expr loc;
-                var type = a.Typ;
-                Match('[');
-                i = Bool();
-                Match(']');
-                type = ((Arr)type).Of;
-                w = new Constant(type.Width);
-                t1 = new Arith(new Token('*'), i, w);
-                loc = t1;
-                while (look.Tag == '[') {
-                    Match('[');
-                    i = Bool();
-                    Match(']');
-                    w = new Constant(type.Width);
-                    t1 = new Arith(new Token('*'), i, w);
-                    t2 = new Arith(new Token('+'), loc, t1);
-                    loc = t2;
-                }
-                return new Access(a, loc, type);
-            }
-            */
+        return access;
+    }
 }

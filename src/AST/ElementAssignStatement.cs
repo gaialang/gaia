@@ -1,13 +1,13 @@
-﻿namespace Gaia.AST;
+namespace Gaia.AST;
 
-public class AssignStatement : Statement {
-    public Identifier Left { get; }
+public class ElementAssignStatement : Statement {
+    public ElementAccessExpression Left { get; }
     public Expression Right { get; }
 
-    public AssignStatement(Identifier l, Expression r) {
+    public ElementAssignStatement(ElementAccessExpression l, Expression r) {
         Left = l;
         Right = r;
-        Kind = SyntaxKind.AssignStatement;
+        Kind = SyntaxKind.ElementAssignStatement;
     }
 
     public override SyntaxKind Kind { get; protected set; }

@@ -1,11 +1,14 @@
 package main;
 
-import "stdio";
-
 var a: int = 0;
 var b: int = 1 * 2 + 3 / 4;
 
 func main() -> int {
+    var g: int[3][3];
+    var d: int[];
+    //d[0]=1;
+    var f: int[][];
+    //f[0][0]=2;
     return 0;
 }
 

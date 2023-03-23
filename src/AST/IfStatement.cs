@@ -2,12 +2,12 @@ namespace Gaia.AST;
 
 public class IfStatement : Statement {
     public Expression Expression;
-    public Block Body;
+    public Block ThenStatement;
     public Statement? ElseStatement;
 
-    public IfStatement(Expression x, Block body, Statement? elseStatement = null) {
+    public IfStatement(Expression x, Block thenStatement, Statement? elseStatement = null) {
         Expression = x;
-        Body = body;
+        ThenStatement = thenStatement;
         ElseStatement = elseStatement;
         Kind = SyntaxKind.IfStatement;
     }

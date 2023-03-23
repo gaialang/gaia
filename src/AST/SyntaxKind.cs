@@ -17,5 +17,5 @@ public enum SyntaxKind {
     DoStatement,
     BreakStatement,
     IfStatement,
-    ElseStatement,
+    ElementAssignStatement,
 }

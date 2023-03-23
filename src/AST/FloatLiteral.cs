@@ -1,7 +1,7 @@
 ﻿namespace Gaia.AST;
 
-public sealed class IntLiteral : Expression {
-    public IntLiteral(string text, int pos) {
+public sealed class FloatLiteral : Expression {
+    public FloatLiteral(string text, int pos) {
         Text = text;
         Pos = pos;
         End = pos + text.Length;

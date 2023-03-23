@@ -6,6 +6,7 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(VariableDeclaration node, TContext ctx);
     TResult Visit(UnaryExpression node, TContext ctx);
     TResult Visit(IntLiteral node, TContext ctx);
+    TResult Visit(FloatLiteral node, TContext ctx);
     TResult Visit(FunctionDeclaration node, TContext ctx);
     TResult Visit(WhileStatement node, TContext ctx);
     TResult Visit(BinaryExpression node, TContext ctx);
@@ -17,5 +18,6 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(IfStatement node, TContext ctx);
     TResult Visit(BreakStatement node, TContext ctx);
     TResult Visit(DoStatement node, TContext ctx);
-    TResult Visit(ElseStatement node, TContext ctx);
+    TResult Visit(ElementAssignStatement node, TContext ctx);
+    TResult Visit(ElementAccessExpression node, TContext ctx);
 }

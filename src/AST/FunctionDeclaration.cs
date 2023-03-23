@@ -1,7 +1,7 @@
 ﻿namespace Gaia.AST;
 
 public sealed class FunctionDeclaration : Statement {
-    public FunctionDeclaration(string name, List<Identifier> parameters, IdType returnType, Block body) {
+    public FunctionDeclaration(Identifier name, List<Identifier> parameters, TypeInfo returnType, Block body) {
         Name = name;
         Parameters = parameters;
         ReturnType = returnType;
@@ -9,9 +9,9 @@ public sealed class FunctionDeclaration : Statement {
         Kind = SyntaxKind.FunctionDeclaration;
     }
 
-    public string Name { get; }
+    public Identifier Name { get; }
     public List<Identifier> Parameters { get; }
-    public IdType ReturnType { get; }
+    public TypeInfo ReturnType { get; }
     public Block Body { get; private set; }
 
     public override SyntaxKind Kind { get; protected set; }

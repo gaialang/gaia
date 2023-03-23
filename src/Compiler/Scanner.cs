@@ -5,6 +5,7 @@ namespace Gaia.Compiler;
 public class Scanner {
     public static int Line { get; private set; } = 1;
     // After reading a char, Pos will be the right number.
+    public static int Column { get; private set; } = 0;
     public static int Pos { get; private set; } = 0;
     public bool IsAtEnd { get; private set; } = false;
 
@@ -44,53 +45,51 @@ public class Scanner {
             if (Readch('&')) {
                 return Word.And;
             } else {
-                return new Token('&');
+                return AddToken('&');
             }
         case '|':
             if (Readch('|')) {
                 return Word.Or;
             } else {
-                return new Token('|');
+                return AddToken('|');
             }
         case '!':
             if (Readch('=')) {
                 return Word.Ne;
             } else {
-                return new Token('!');
+                return AddToken('!');
             }
             */
         case '"':
             return ScanString();
         case ',':
-            return new Token(TokenType.Comma, ",", Line, Pos);
+            return AddToken(TokenType.Comma, ",");
         case '(':
-            return new Token(TokenType.LParen, "(", Line, Pos);
+            return AddToken(TokenType.LParen, "(");
         case ')':
-            return new Token(TokenType.RParen, ")", Line, Pos);
+            return AddToken(TokenType.RParen, ")");
+        case '[':
+            return AddToken(TokenType.LBracket, "[");
+        case ']':
+            return AddToken(TokenType.RBracket, "]");
         case '{':
-            return new Token(TokenType.LBrace, "{", Line, Pos);
+            return AddToken(TokenType.LBrace, "{");
         case '}':
-            return new Token(TokenType.RBrace, "}", Line, Pos);
+            return AddToken(TokenType.RBrace, "}");
         case ';':
-            return new Token(TokenType.Semicolon, ";", Line, Pos);
+            return AddToken(TokenType.Semicolon, ";");
         case ':':
-            return new Token(TokenType.Colon, ":", Line, Pos);
-        case '*':
-            return new Token(TokenType.Mul, "*", Line, Pos);
+            return AddToken(TokenType.Colon, ":");
         case '+':
-            return new Token(TokenType.Plus, "+", Line, Pos);
+            return AddToken(TokenType.Plus, "+");
         case '-':
             if (MatchChar('>')) {
-                return new Token(TokenType.Arrow, "->", Line, Pos);
+                return AddToken(TokenType.Arrow, "->");
             } else {
-                return new Token(TokenType.Minus, "-", Line, Pos);
+                return AddToken(TokenType.Minus, "-");
             }
-        case '=':
-            if (MatchChar('=')) {
-                return new Token(TokenType.EqualEqual, "==", Line, Pos);
-            } else {
-                return new Token(TokenType.Equal, "=", Line, Pos);
-            }
+        case '*':
+            return AddToken(TokenType.Mul, "*");
         case '/':
             if (MatchChar('/')) {
                 // Ignore comments, skip a line and re-scan.
@@ -100,22 +99,28 @@ public class Scanner {
                 SkipBlockComment();
                 return Scan();
             } else {
-                return new Token(TokenType.Div, "/", Line, Pos);
+                return AddToken(TokenType.Div, "/");
+            }
+        case '=':
+            if (MatchChar('=')) {
+                return AddToken(TokenType.EqualEqual, "==");
+            } else {
+                return AddToken(TokenType.Equal, "=");
             }
         case '<':
             if (MatchChar('=')) {
-                return new Token(TokenType.LessEqualThan, "<=", Line, Pos);
+                return AddToken(TokenType.LessEqualThan, "<=");
             } else {
-                return new Token(TokenType.LessThan, "<", Line, Pos);
+                return AddToken(TokenType.LessThan, "<");
             }
         case '>':
             if (MatchChar('=')) {
-                return new Token(TokenType.GreaterEqualThan, ">=", Line, Pos);
+                return AddToken(TokenType.GreaterEqualThan, ">=");
             } else {
-                return new Token(TokenType.GreaterThan, ">", Line, Pos);
+                return AddToken(TokenType.GreaterThan, ">");
             }
         case '\0':
-            return new Token(TokenType.EndOfFile, "\0", Line, Pos);
+            return AddToken(TokenType.EndOfFile, "\0");
         default:
             if (char.IsLetter(ch)) {
                 return ScanIdentifier(ch);
@@ -124,8 +129,12 @@ public class Scanner {
                 return ScanNumber(ch);
             }
 
-            throw new Exception($"Near line {Scanner.Line} position {Scanner.Pos}: unknown char.");
+            throw new Exception($"Near line {Scanner.Line} column {Scanner.Column}: unknown char.");
         }
+    }
+
+    private Token AddToken(TokenType t, string lexeme) {
+        return new Token(t, lexeme, Pos, Line, Column);
     }
 
     private Token ScanNumber(char ch) {
@@ -137,8 +146,7 @@ public class Scanner {
 
         if (PeekChar() != '.') {
             var s = b.ToString();
-            var v = int.Parse(s);
-            return new Token(TokenType.IntLiteral, s, Line, Pos, v);
+            return AddToken(TokenType.IntLiteral, s);
         }
 
         b.Append(ReadChar());
@@ -147,8 +155,7 @@ public class Scanner {
         }
 
         var str = b.ToString();
-        var d = double.Parse(str);
-        return new Token(TokenType.FloatLiteral, str, Line, Pos, d);
+        return AddToken(TokenType.FloatLiteral, str);
     }
 
     private Token ScanIdentifier(char ch) {
@@ -162,10 +169,10 @@ public class Scanner {
         var s = b.ToString();
 
         if (keywords.TryGetValue(s, out var tokenType)) {
-            return new Token(tokenType, s, Line, Pos);
+            return AddToken(tokenType, s);
         }
 
-        return new Token(TokenType.Identifier, s, Line, Pos);
+        return AddToken(TokenType.Identifier, s);
     }
 
     private Token ScanString() {
@@ -178,7 +185,7 @@ public class Scanner {
 
         var s = b.ToString();
 
-        return new Token(TokenType.StringLiteral, s, Line, Pos);
+        return AddToken(TokenType.StringLiteral, s);
     }
 
     private char ReadChar() {
@@ -188,6 +195,7 @@ public class Scanner {
             return '\0';
         }
         var peek = (char)n;
+        Column++;
         Pos++;
         return peek;
     }
@@ -222,7 +230,7 @@ public class Scanner {
                 break;
             case '\n':
                 Line++;
-                Pos = 0;
+                Column = 0;
                 ReadChar();
                 break;
             default:
@@ -242,7 +250,7 @@ public class Scanner {
                 break;
             case '\n':
                 Line++;
-                Pos = 0;
+                Column = 0;
                 ReadChar();
                 break;
             case '*':

@@ -13,7 +13,9 @@ public class Emitter : Visitor<string, object?> {
 
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
         // Preclude headers.
-        writer.WriteLine("#include <stdbool.h>");
+        Console.WriteLine("#include <stdio.h>");
+        Console.WriteLine("#include <stdbool.h>");
+        Console.WriteLine();
 
         foreach (var expr in pkg.Statements) {
             expr.Accept(this, ctx);
@@ -22,7 +24,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(ImportDeclaration node, object? ctx = null) {
-        writer.WriteLine($"#include <{node.ModuleSpecifier}.h>\n");
+        writer.WriteLine($"#include <{node.ModuleSpecifier}.h>");
         return "";
     }
 
@@ -31,15 +33,67 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(VariableDeclaration s, object? ctx = null) {
-        var t = Util.ConvertType(s.Id.IdType);
-        var name = s.Id.Accept(this, ctx);
-        if (s.Expr is null) {
-            writer.WriteLine($"{t} {name};");
+        var t = ToCType(s.Name);
+        if (s.Initializer is null) {
+            writer.WriteLine($"{t};");
         } else {
-            var val = s.Expr.Accept(this, ctx);
-            writer.WriteLine($"{t} {name} = {val};");
+            var val = s.Initializer.Accept(this, ctx);
+            writer.WriteLine($"{t} = {val};");
         }
         return "";
+    }
+
+    private static string ToCType(Identifier id) {
+        var t = id.TypeInfo;
+        if (t is ArrayType) {
+            return ConvertArray(id);
+        }
+        if (t is IndexedAccessType) {
+            return ConvertIndexedAccess(id);
+        }
+
+        var s = ConvertPrimitive(t);
+        return $"{s} {id.Name}";
+    }
+
+    private static string ConvertArray(Identifier id) {
+        var sb = new StringBuilder();
+        var arr = id.TypeInfo;
+
+        do {
+            var x = (ArrayType)arr;
+            sb.Insert(0, "[]");
+            arr = x.ElementType;
+        } while (arr is ArrayType);
+
+        var primitive = arr;
+
+        var pre = ConvertPrimitive(primitive);
+        var post = string.Join("", sb);
+        return $"{pre} {id.Name}{post}";
+    }
+
+    private static string ConvertIndexedAccess(Identifier id) {
+        var sb = new StringBuilder();
+        var arr = id.TypeInfo;
+
+        do {
+            var x = (IndexedAccessType)arr;
+            sb.Insert(0, $"[{x.IndexType}]");
+            arr = x.ObjectType;
+        } while (arr is IndexedAccessType);
+
+        var obj = arr;
+        var pre = ConvertPrimitive(obj);
+        var post = string.Join("", sb);
+        return $"{pre} {id.Name}{post}";
+    }
+
+    private static string ConvertPrimitive(TypeInfo t) {
+        var map = new Dictionary<TypeKind, string> {
+            {TypeKind.Int, "int"}
+        };
+        return map[t.Kind];
     }
 
     public string Visit(UnaryExpression n, object? ctx = null) {
@@ -53,20 +107,26 @@ public class Emitter : Visitor<string, object?> {
         return $"{lhs} {n.OperatorToken.Lexeme} {rhs}";
     }
 
-    public string Visit(IntLiteral i, object? ctx = null) {
-        return i.Lexeme;
+    public string Visit(IntLiteral node, object? ctx = null) {
+        return node.Text;
+    }
+
+    public string Visit(FloatLiteral node, object? ctx = null) {
+        return node.Text;
     }
 
     public string Visit(FunctionDeclaration fn, object? ctx = null) {
         var list = new List<string>();
         foreach (var item in fn.Parameters) {
-            var t = Util.ConvertType(item.IdType);
+            var t = ConvertPrimitive(item.TypeInfo);
             list.Add($"{t} {item.Name}");
         }
         var args = string.Join(", ", list);
 
-        var ret = Util.ConvertType(fn.ReturnType);
-        writer.WriteLine($"\n{ret} {fn.Name}({args}) {{");
+        var ret = ConvertPrimitive(fn.ReturnType);
+        var name = fn.Name.Accept(this, ctx);
+        writer.WriteLine();
+        writer.WriteLine($"{ret} {name}({args}) {{");
         indent++;
         fn.Body?.Accept(this, ctx);
         writer.WriteLine("}");
@@ -80,8 +140,7 @@ public class Emitter : Visitor<string, object?> {
         indent++;
         node.Body.Accept(this, ctx);
         indent--;
-        var indentString = GetIndent();
-        writer.Write(indentString);
+        writer.Write(Indent());
         writer.WriteLine("}");
         return "";
     }
@@ -97,16 +156,15 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(AssignStatement node, object? ctx = null) {
-        var name = node.LValue.Accept(this, ctx);
-        var val = node.RValue.Accept(this, ctx);
+        var name = node.Left.Accept(this, ctx);
+        var val = node.Right.Accept(this, ctx);
         writer.WriteLine($"{name} = {val};");
         return "";
     }
 
     public string Visit(Block node, object? ctx = null) {
         foreach (var stmt in node.Statements) {
-            var indentString = GetIndent();
-            writer.Write(indentString);
+            writer.Write(Indent());
             stmt.Accept(this, ctx);
         }
 
@@ -126,29 +184,36 @@ public class Emitter : Visitor<string, object?> {
         var expr = node.Expression.Accept(this, ctx);
         writer.WriteLine($"if ({expr}) {{");
         indent++;
-        node.Body.Accept(this, ctx);
+        node.ThenStatement.Accept(this, ctx);
         if (node.ElseStatement is null) {
             indent--;
-            var indentString = GetIndent();
-            writer.Write(indentString);
+            writer.Write(Indent());
             writer.WriteLine("}");
         } else {
             indent--;
-            var indentString = GetIndent();
-            writer.Write(indentString);
+            writer.Write(Indent());
             writer.Write("} ");
             node.ElseStatement.Accept(this, ctx);
         }
         return "";
     }
 
-    public string Visit(ElseStatement node, object? ctx = null) {
+    public string Visit(ElementAssignStatement node, object? ctx = null) {
         writer.WriteLine("else {");
         indent++;
-        node.Body.Accept(this, ctx);
+        // node.Body.Accept(this, ctx);
         indent--;
-        var indentString = GetIndent();
-        writer.Write(indentString);
+        writer.Write(Indent());
+        writer.WriteLine("}");
+        return "";
+    }
+
+    public string Visit(ElementAccessExpression expr, object? ctx = null) {
+        writer.WriteLine("else {");
+        indent++;
+        // node.Body.Accept(this, ctx);
+        indent--;
+        writer.Write(Indent());
         writer.WriteLine("}");
         return "";
     }
@@ -158,14 +223,13 @@ public class Emitter : Visitor<string, object?> {
         indent++;
         node.Body.Accept(this, ctx);
         indent--;
-        var indentString = GetIndent();
-        writer.Write(indentString);
+        writer.Write(Indent());
         var expr = node.Expression.Accept(this, ctx);
         writer.WriteLine($"}} while ({expr});");
         return "";
     }
 
-    private string GetIndent() {
+    private string Indent() {
         var sb = new StringBuilder();
         for (var i = 0; i < indent; i++) {
             sb.Append("    ");

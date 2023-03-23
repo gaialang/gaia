@@ -1,14 +1,12 @@
 namespace Gaia.AST;
 
 public sealed class BoolLiteral : Expression {
-    public BoolLiteral(string lexeme, bool value) {
+    public BoolLiteral(string lexeme) {
         Lexeme = lexeme;
-        Value = value;
         Kind = SyntaxKind.BoolLiteral;
     }
 
     public string Lexeme { get; private set; }
-    public bool Value { get; private set; }
 
     public override SyntaxKind Kind { get; protected set; }
 
