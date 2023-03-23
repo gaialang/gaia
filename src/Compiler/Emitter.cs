@@ -199,23 +199,16 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(ElementAssignStatement node, object? ctx = null) {
-        writer.WriteLine("else {");
-        indent++;
-        // node.Body.Accept(this, ctx);
-        indent--;
-        writer.Write(Indent());
-        writer.WriteLine("}");
+        var l = node.Left.Accept(this, ctx);
+        var r = node.Right.Accept(this, ctx);
+        writer.WriteLine($"{l} = {r};");
         return "";
     }
 
     public string Visit(ElementAccessExpression expr, object? ctx = null) {
-        writer.WriteLine("else {");
-        indent++;
-        // node.Body.Accept(this, ctx);
-        indent--;
-        writer.Write(Indent());
-        writer.WriteLine("}");
-        return "";
+        var l = expr.Expression.Accept(this, ctx);
+        var index = expr.ArgumentExpression.Accept(this, ctx);
+        return $"{l}[{index}]";
     }
 
     public string Visit(DoStatement node, object? ctx = null) {

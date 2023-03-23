@@ -64,7 +64,7 @@ public sealed class Parser {
 
     public Statement ParsePackage() {
         if (look.Type != TokenType.PackageKeyword) {
-            Error("Expected package");
+            Error($"expected package, but got {look}");
         }
 
         var savedEnv = top;
@@ -462,7 +462,7 @@ public sealed class Parser {
             Advance();
             stmt = new AssignStatement(id!, ParseExpression());
         } else {
-            // For array
+            // For array type
             var x = Offset(id!);
             Match(TokenType.Equal);
             stmt = new ElementAssignStatement(x, ParseExpression());
@@ -472,15 +472,14 @@ public sealed class Parser {
         return stmt;
     }
 
-    public ElementAccessExpression Offset(Identifier id) {
-        ElementAccessExpression access;
-
-        do {
-            Match(TokenType.LBracket);
-            var index = ParseExpression();
-            Match(TokenType.RBracket);
-            access = new ElementAccessExpression(id, index);
-        } while (look.Type == TokenType.LBracket);
+    public ElementAccessExpression Offset(Expression expr) {
+        Match(TokenType.LBracket);
+        var index = ParseExpression();
+        Match(TokenType.RBracket);
+        var access = new ElementAccessExpression(expr, index);
+        if (look.Type == TokenType.LBracket) {
+            access = Offset(access);
+        }
 
         return access;
     }
