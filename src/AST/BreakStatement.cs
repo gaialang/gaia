@@ -8,9 +8,9 @@ public class BreakStatement : Statement {
 
     public string Label { get; }
 
-    public override SyntaxKind Kind { get; protected set; }
+    public SyntaxKind Kind { get; }
 
-    public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
-        return visitor.Visit(this, ctx);
+    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
+        return v.Visit(this, ctx);
     }
 }

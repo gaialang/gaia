@@ -4,34 +4,34 @@ var a: int = 0;
 var b: int = 1 * 2 + 3 / 4;
 
 func main() -> int {
-    var g: int[3][3];
-    var d: int[];
-    d[0]=1;
-    var f: int[][];
-    f[0][0]=2;
+    a = 10;
+    b = 20;
+    var f: int[2][2];
+    foo(a, b);
     return 0;
 }
 
-// No way
-// dooo
-func foo(x: int, y: int) -> int {
-    var i: int;
-    var j: int;
-    i=1;
-    j=6;
-    if i>=j {
-        i=2;
+/* comments */
+// comments
+func foo(i: int, j: int) -> int {
+    if i > j {
+        i = 2;
+    } else if i < j{
+        i = 3;
     } else {
-        i=3;
+        i = 4;
     }
+
     while true {
         i = i+1;
-        if i>=j {
+        if i >= j {
             break;
         }
     }
+
     do {
         i=i+1;
-    } while i<10;
+    } while i < 20;
+    printf("%d", i);
     return i;
 }

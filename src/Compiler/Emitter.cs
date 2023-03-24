@@ -13,9 +13,9 @@ public class Emitter : Visitor<string, object?> {
 
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
         // Preclude headers.
-        Console.WriteLine("#include <stdio.h>");
-        Console.WriteLine("#include <stdbool.h>");
-        Console.WriteLine();
+        writer.WriteLine("#include <stdio.h>");
+        writer.WriteLine("#include <stdbool.h>");
+        writer.WriteLine();
 
         foreach (var expr in pkg.Statements) {
             expr.Accept(this, ctx);
@@ -172,7 +172,11 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(BoolLiteral node, object? ctx = null) {
-        return node.Lexeme;
+        return node.Text;
+    }
+
+    public string Visit(StringLiteral node, object? ctx = null) {
+        return $"\"{node.Text}\"";
     }
 
     public string Visit(BreakStatement node, object? ctx = null) {
@@ -219,6 +223,20 @@ public class Emitter : Visitor<string, object?> {
         writer.Write(Indent());
         var expr = node.Expression.Accept(this, ctx);
         writer.WriteLine($"}} while ({expr});");
+        return "";
+    }
+
+    public string Visit(CallExpression node, object? ctx = null) {
+        var expr = node.Expression.Accept(this, ctx);
+
+        var list = new List<string>();
+        foreach (var item in node.Arguments) {
+            var s = item.Accept(this, ctx);
+            list.Add(s);
+        }
+        var args = string.Join(", ", list);
+
+        writer.WriteLine($"{expr}({args});");
         return "";
     }
 

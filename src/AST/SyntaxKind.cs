@@ -18,4 +18,5 @@ public enum SyntaxKind {
     BreakStatement,
     IfStatement,
     ElementAssignStatement,
+    CallExpression,
 }

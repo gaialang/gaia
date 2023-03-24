@@ -3,5 +3,5 @@
 /// <summary>
 /// Statement.
 /// </summary>
-public abstract class Statement : Node {
+public interface Statement : Node {
 }

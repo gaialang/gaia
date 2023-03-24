@@ -1,16 +1,20 @@
 namespace Gaia.AST;
 
 public sealed class BoolLiteral : Expression {
-    public BoolLiteral(string lexeme) {
-        Lexeme = lexeme;
+    public BoolLiteral(string text, int pos) {
+        Text = text;
+        Pos = pos;
+        End = pos + text.Length;
         Kind = SyntaxKind.BoolLiteral;
     }
 
-    public string Lexeme { get; private set; }
+    public string Text { get; }
+    public int Pos { get; }
+    public int End { get; }
 
-    public override SyntaxKind Kind { get; protected set; }
+    public SyntaxKind Kind { get; }
 
-    public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
-        return visitor.Visit(this, ctx);
+    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
+        return v.Visit(this, ctx);
     }
 }

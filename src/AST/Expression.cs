@@ -3,5 +3,5 @@
 /// <summary>
 /// Expression.
 /// </summary>
-public abstract class Expression : Node {
+public interface Expression : Node {
 }

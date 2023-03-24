@@ -10,11 +10,9 @@ public sealed class Identifier : Expression {
     public string Name { get; }
     public TypeInfo TypeInfo { get; }
 
-    public override SyntaxKind Kind { get; protected set; }
+    public SyntaxKind Kind { get; }
 
-    public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
+    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
         return v.Visit(this, ctx);
     }
-
-
 }

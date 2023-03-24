@@ -20,4 +20,6 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(DoStatement node, TContext ctx);
     TResult Visit(ElementAssignStatement node, TContext ctx);
     TResult Visit(ElementAccessExpression node, TContext ctx);
+    TResult Visit(CallExpression node, TContext ctx);
+    TResult Visit(StringLiteral node, TContext ctx);
 }

@@ -24,8 +24,6 @@ public sealed class Parser {
         { "|", 6 },
         { "&&", 5 },
         { "||", 4 },
-
-        { ",", 1},
     };
     private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-", "!" };
 
@@ -235,31 +233,88 @@ public sealed class Parser {
             x = new FloatLiteral(look.Lexeme, look.Pos);
             Advance();
             return x;
+        case TokenType.StringLiteral:
+            x = new StringLiteral(look.Lexeme, look.Pos);
+            Advance();
+            return x;
         case TokenType.TrueKeyword:
-            x = new BoolLiteral(look.Lexeme);
+            x = new BoolLiteral(look.Lexeme, look.Pos);
             Advance();
             return x;
         case TokenType.FalseKeyword:
-            x = new BoolLiteral(look.Lexeme);
+            x = new BoolLiteral(look.Lexeme, look.Pos);
             Advance();
             return x;
         case TokenType.Identifier:
-            var id = top?.Get(look.Lexeme);
-            if (id is null) {
-                Error($"{look} undeclared");
-            }
-            Advance();
-
-            if (look.Type != TokenType.LBracket) {
-                return id!;
-            } else {
-                return Offset(id!);
-            }
+            return ParseAccessOrCall();
         default:
             Error("Primary has a bug");
             // unreachable
             return null;
         }
+    }
+
+    private Expression ParseAccessOrCall() {
+        var id = top?.Get(look.Lexeme);
+        if (id is null) {
+            // Error($"{look} undeclared");
+            // TODO: Handle undefined functions
+            id = new Identifier(look.Lexeme, TypeInfo.Func);
+        }
+        Advance();
+
+        if (id!.TypeInfo == TypeInfo.Func) {
+            if (look.Type != TokenType.LParen) {
+                return id;
+            } else {
+                return ParseCall(id);
+            }
+        } else {
+            if (look.Type != TokenType.LBracket) {
+                return id;
+            } else {
+                return ParseAccess(id);
+            }
+        }
+    }
+
+    // Actual arguments
+    private List<Expression> ArgumentList() {
+        var args = new List<Expression>();
+        if (look.Type == TokenType.RParen) {
+            return args;
+        }
+
+        var first = ParseExpression();
+        args.Add(first);
+
+        ArgumentRest(args);
+        return args;
+    }
+
+    private void ArgumentRest(List<Expression> args) {
+        if (look.Type != TokenType.Comma) {
+            return;
+        }
+
+        Match(TokenType.Comma);
+        var rest = ParseExpression();
+        args.Add(rest);
+
+        // Find the rest.
+        ArgumentRest(args);
+    }
+
+    private CallExpression ParseCall(Expression expr) {
+        Match(TokenType.LParen);
+        var args = ArgumentList();
+        Match(TokenType.RParen);
+        var call = new CallExpression(expr, args);
+        if (look.Type == TokenType.LParen) {
+            call = ParseCall(call);
+        }
+
+        return call;
     }
 
     public List<Statement> FuncDeclarations() {
@@ -292,7 +347,7 @@ public sealed class Parser {
         return new FunctionDeclaration(funcId, args, returnType, b);
     }
 
-    // Parameters
+    // Formal parameters
     private List<Identifier> ParameterList() {
         var args = new List<Identifier>();
         if (look.Type == TokenType.RParen) {
@@ -415,8 +470,28 @@ public sealed class Parser {
             return ParseReturn();
         case TokenType.VarKeyword:
             return ParseVar();
+        case TokenType.Identifier:
+            return ParseAssignOrCall();
         default:
-            return ParseAssign();
+            Error("unknown statement");
+            return null;
+        }
+    }
+
+    private Statement? ParseAssignOrCall() {
+        var tok = look;
+        Match(TokenType.Identifier);
+        var id = top?.Get(tok.Lexeme);
+        if (id is null) {
+            // Error($"{tok} undeclared");
+            id = new Identifier(tok.Lexeme, TypeInfo.Func);
+        }
+
+        if (id.TypeInfo == TypeInfo.Func) {
+            var n = ParseCall(id);
+            return n as Statement;
+        } else {
+            return ParseAssign(id);
         }
     }
 
@@ -450,20 +525,14 @@ public sealed class Parser {
         return new ReturnStatement();
     }
 
-    private Statement? ParseAssign() {
+    private Statement? ParseAssign(Identifier id) {
         Statement? stmt = null;
-        var tok = look;
-        Match(TokenType.Identifier);
-        var id = top?.Get(tok.Lexeme);
-        if (id is null) {
-            Error($"{tok} undeclared");
-        }
         if (look.Type == TokenType.Equal) {
             Advance();
-            stmt = new AssignStatement(id!, ParseExpression());
+            stmt = new AssignStatement(id, ParseExpression());
         } else {
             // For array type
-            var x = Offset(id!);
+            var x = ParseAccess(id);
             Match(TokenType.Equal);
             stmt = new ElementAssignStatement(x, ParseExpression());
         }
@@ -472,13 +541,13 @@ public sealed class Parser {
         return stmt;
     }
 
-    public ElementAccessExpression Offset(Expression expr) {
+    public ElementAccessExpression ParseAccess(Expression expr) {
         Match(TokenType.LBracket);
         var index = ParseExpression();
         Match(TokenType.RBracket);
         var access = new ElementAccessExpression(expr, index);
         if (look.Type == TokenType.LBracket) {
-            access = Offset(access);
+            access = ParseAccess(access);
         }
 
         return access;

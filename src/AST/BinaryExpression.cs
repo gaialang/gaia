@@ -14,9 +14,9 @@ public sealed class BinaryExpression : Expression {
     public Expression Right { get; }
     public Token OperatorToken { get; }
 
-    public override SyntaxKind Kind { get; protected set; }
+    public SyntaxKind Kind { get; }
 
-    public override TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
+    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
         return visitor.Visit(this, ctx);
     }
 }
