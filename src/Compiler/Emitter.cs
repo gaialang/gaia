@@ -12,7 +12,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
-        // Preclude headers.
+        // include headers.
         writer.WriteLine("#include <stdio.h>");
         writer.WriteLine("#include <stdbool.h>");
         writer.WriteLine();
