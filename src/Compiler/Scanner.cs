@@ -8,6 +8,7 @@ public class Scanner {
     public static int Column { get; private set; } = 0;
     public static int Pos { get; private set; } = 0;
     public bool IsAtEnd { get; private set; } = false;
+    private TokenFlags tokenFlags;
 
     private readonly StreamReader source;
     private readonly Dictionary<string, TokenType> keywords = new() {
@@ -35,33 +36,37 @@ public class Scanner {
         source = new StreamReader(path);
     }
 
+    public bool HasPrecedingLineBreak() => (tokenFlags & TokenFlags.PrecedingLineBreak) != 0;
+
     public Token Scan() {
+        tokenFlags = TokenFlags.None;
+
         SkipWhitespace();
 
         var ch = ReadChar();
         switch (ch) {
-        /*
         case '&':
-            if (Readch('&')) {
-                return Word.And;
+            if (MatchChar('&')) {
+                return AddToken(TokenType.And, "&&");
             } else {
-                return AddToken('&');
+                return AddToken(TokenType.Ampersand, "&");
             }
         case '|':
-            if (Readch('|')) {
-                return Word.Or;
+            if (MatchChar('|')) {
+                return AddToken(TokenType.Or, "||");
             } else {
-                return AddToken('|');
+                return AddToken(TokenType.Bar, "|");
             }
         case '!':
-            if (Readch('=')) {
-                return Word.Ne;
+            if (MatchChar('=')) {
+                return AddToken(TokenType.NotEqual, "!=");
             } else {
-                return AddToken('!');
+                return AddToken(TokenType.Not, "!");
             }
-            */
         case '"':
             return ScanString();
+        case '\'':
+            return ScanCharacter();
         case ',':
             return AddToken(TokenType.Comma, ",");
         case '(':
@@ -188,6 +193,13 @@ public class Scanner {
         return AddToken(TokenType.StringLiteral, s);
     }
 
+    private Token ScanCharacter() {
+        var ch = ReadChar();
+        ReadChar();
+
+        return AddToken(TokenType.CharacterLiteral, ch.ToString());
+    }
+
     private char ReadChar() {
         var n = source.Read();
         if (n == -1) {
@@ -232,6 +244,7 @@ public class Scanner {
                 Line++;
                 Column = 0;
                 ReadChar();
+                tokenFlags |= TokenFlags.PrecedingLineBreak;
                 break;
             default:
                 return;

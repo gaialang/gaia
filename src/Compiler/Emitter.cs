@@ -194,10 +194,21 @@ public class Emitter : Visitor<string, object?> {
             writer.Write(Indent());
             writer.WriteLine("}");
         } else {
-            indent--;
-            writer.Write(Indent());
-            writer.Write("} ");
-            node.ElseStatement.Accept(this, ctx);
+            if (node.ElseStatement is IfStatement) {
+                indent--;
+                writer.Write(Indent());
+                writer.Write("} else ");
+                node.ElseStatement.Accept(this, ctx);
+            } else {
+                indent--;
+                writer.Write(Indent());
+                writer.WriteLine("} else {");
+                indent++;
+                node.ElseStatement.Accept(this, ctx);
+                indent--;
+                writer.Write(Indent());
+                writer.WriteLine("}");
+            }
         }
         return "";
     }

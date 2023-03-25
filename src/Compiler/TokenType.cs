@@ -30,6 +30,7 @@ public enum TokenType {
     GreaterThan,
     GreaterEqualThan,
     Not,
+    NotEqual,
     ReturnKeyword,
     LBracket,
     RBracket,
@@ -41,4 +42,9 @@ public enum TokenType {
     DoKeyword,
     ElseKeyword,
     BreakKeyword,
+    And,
+    Ampersand, // &
+    Bar, // |
+    Or,
+    CharacterLiteral,
 }
