@@ -552,13 +552,13 @@ public sealed class Parser {
     public Statement ParseReturn() {
         ParseExpected(TokenType.ReturnKeyword);
 
-        if (currentToken.Type != TokenType.Semicolon) {
+        if (CanParseSemicolon()) {
+            return new ReturnStatement();
+        } else {
             var s = ParseUnary();
+            ParseSemicolon();
             return new ReturnStatement(s);
         }
-
-        ParseSemicolon();
-        return new ReturnStatement();
     }
 
     private Statement? ParseAssign(Identifier id) {
