@@ -1,14 +1,12 @@
 namespace Gaia.AST;
 
-public class CallExpression : Expression {
-    public CallExpression(Expression expr, List<Expression> args) {
+public class ExpressionStatement : Statement {
+    public ExpressionStatement(Expression expr) {
         Expression = expr;
-        Arguments = args;
-        Kind = SyntaxKind.CallExpression;
+        Kind = SyntaxKind.ExpressionStatement;
     }
 
     public Expression Expression { get; private set; }
-    public List<Expression> Arguments { get; private set; }
 
     public SyntaxKind Kind { get; }
 

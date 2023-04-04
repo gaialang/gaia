@@ -21,5 +21,7 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(ElementAssignStatement node, TContext ctx);
     TResult Visit(ElementAccessExpression node, TContext ctx);
     TResult Visit(CallExpression node, TContext ctx);
+    TResult Visit(ExpressionStatement node, TContext ctx);
     TResult Visit(StringLiteral node, TContext ctx);
+    TResult Visit(ArrayLiteralExpression node, TContext ctx);
 }

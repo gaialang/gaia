@@ -57,7 +57,7 @@ public sealed class Parser {
     /// </summary>
     /// <param name="t"></param>
     private bool ParseExpected(TokenType t, bool shouldAdvance = true) {
-        if (GetToken().Type == t) {
+        if (currentToken.Type == t) {
             if (shouldAdvance) {
                 NextToken();
             }
@@ -69,7 +69,7 @@ public sealed class Parser {
     }
 
     private bool CanParseSemicolon() {
-        var kind = GetToken().Type;
+        var kind = currentToken.Type;
         // If there's a real semicolon, then we can always parse it out.
         if (kind == TokenType.Semicolon) {
             return true;
@@ -84,7 +84,7 @@ public sealed class Parser {
             return false;
         }
 
-        if (GetToken().Type == TokenType.Semicolon) {
+        if (currentToken.Type == TokenType.Semicolon) {
             // consume the semicolon if it was explicitly provided.
             NextToken();
         }
@@ -283,11 +283,27 @@ public sealed class Parser {
             return x;
         case TokenType.Identifier:
             return ParseAccessOrCall();
+        case TokenType.LBracket:
+            return ParseArrayLiteral();
         default:
             Error("Primary has a bug");
             // unreachable
             return null;
         }
+    }
+
+    public Expression ParseArrayLiteral() {
+        ParseExpected(TokenType.LBracket);
+        var list = new List<Expression>();
+        var first = ParseUnary();
+        list.Add(first);
+        while (currentToken.Type == TokenType.Comma) {
+            ParseExpected(TokenType.Comma);
+            var elem = ParseUnary();
+            list.Add(elem);
+        }
+        ParseExpected(TokenType.RBracket);
+        return new ArrayLiteralExpression(list, 1);
     }
 
     private Expression ParseAccessOrCall() {
@@ -524,8 +540,8 @@ public sealed class Parser {
         }
 
         if (id.TypeInfo == TypeInfo.Func) {
-            var n = ParseCall(id);
-            return n as Statement;
+            var call = ParseCall(id);
+            return new ExpressionStatement(call);
         } else {
             return ParseAssign(id);
         }

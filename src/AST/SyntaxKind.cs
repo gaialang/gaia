@@ -19,4 +19,6 @@ public enum SyntaxKind {
     IfStatement,
     ElementAssignStatement,
     CallExpression,
+    ExpressionStatement,
+    ArrayLiteralExpression
 }

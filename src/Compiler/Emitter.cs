@@ -247,8 +247,23 @@ public class Emitter : Visitor<string, object?> {
         }
         var args = string.Join(", ", list);
 
-        writer.WriteLine($"{expr}({args});");
+        return $"{expr}({args});";
+    }
+
+    public string Visit(ExpressionStatement node, object? ctx = null) {
+        var expr = node.Expression.Accept(this, ctx);
+        writer.WriteLine(expr);
         return "";
+    }
+
+    public string Visit(ArrayLiteralExpression node, object? ctx = null) {
+        var list = new List<string>();
+        foreach (var item in node.Elements) {
+            var i = item.Accept(this, ctx);
+            list.Add(i);
+        }
+        var elems = string.Join(", ", list);
+        return $"{{{elems}}}";
     }
 
     private string Indent() {
