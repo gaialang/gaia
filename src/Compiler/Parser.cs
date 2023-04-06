@@ -112,16 +112,35 @@ public sealed class Parser {
         top?.Add(tok.Lexeme, id);
         ParseSemicolon();
 
-        // Toplevel statements.
-        var list = ImportDeclarations();
-        var varList = VarDeclarations();
-        list.AddRange(varList);
-        var funcList = FuncDeclarations();
-        list.AddRange(funcList);
-
+        var list = TopLevelStatements();
         var p = new PackageDeclaration(id.Name, list);
         top = savedEnv;
         return p;
+    }
+
+    public List<Statement> TopLevelStatements() {
+        var list = new List<Statement>();
+
+        // import statements must come first.
+        var imports = ImportDeclarations();
+        list.AddRange(imports);
+
+        while (currentToken.Type != TokenType.EndOfFile) {
+            switch (currentToken.Type) {
+            case TokenType.VarKeyword:
+                var varStmt = ParseVar();
+                list.Add(varStmt);
+                break;
+            case TokenType.FuncKeyword:
+                var funcStmt = ParseFuncStatement();
+                list.Add(funcStmt);
+                break;
+            default:
+                break;
+            }
+        }
+
+        return list;
     }
 
     public List<Statement> ImportDeclarations() {
@@ -369,16 +388,6 @@ public sealed class Parser {
         return call;
     }
 
-    public List<Statement> FuncDeclarations() {
-        var list = new List<Statement>();
-        while (currentToken.Type == TokenType.FuncKeyword) {
-            var funcStmt = ParseFuncStatement();
-            list.Add(funcStmt);
-        }
-
-        return list;
-    }
-
     public FunctionDeclaration ParseFuncStatement() {
         var savedEnv = top;
         top = new Env(top);
@@ -448,19 +457,15 @@ public sealed class Parser {
 
     public Block ParseBlock() {
         ParseExpected(TokenType.LBrace);
+
         var savedEnv = top;
         top = new Env(top);
 
-        var list = new List<Statement>();
-        var varDecls = VarDeclarations();
-        list.AddRange(varDecls);
-
         var statements = StatementList();
-        list.AddRange(statements);
 
         ParseExpected(TokenType.RBrace);
         top = savedEnv;
-        return new Block(list);
+        return new Block(statements);
     }
 
     private Expression ParseExpression(int precedence = 0) {
@@ -497,6 +502,8 @@ public sealed class Parser {
         case TokenType.Semicolon:
             NextToken();
             return null;
+        case TokenType.VarKeyword:
+            return ParseVar();
         case TokenType.WhileKeyword:
             NextToken();
             var whileExpr = ParseExpression();
@@ -520,8 +527,6 @@ public sealed class Parser {
             return ParseBlock();
         case TokenType.ReturnKeyword:
             return ParseReturn();
-        case TokenType.VarKeyword:
-            return ParseVar();
         case TokenType.Identifier:
             return ParseAssignOrCall();
         default:

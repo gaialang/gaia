@@ -20,5 +20,6 @@ public enum SyntaxKind {
     ElementAssignStatement,
     CallExpression,
     ExpressionStatement,
-    ArrayLiteralExpression
+    ArrayLiteralExpression,
+    SourceFile
 }

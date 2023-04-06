@@ -15,10 +15,14 @@ public class Emitter : Visitor<string, object?> {
         // include headers.
         writer.WriteLine("#include <stdio.h>");
         writer.WriteLine("#include <stdbool.h>");
-        writer.WriteLine();
 
-        foreach (var expr in pkg.Statements) {
-            expr.Accept(this, ctx);
+        // TODO: optimize indentations.
+        var kinds = new HashSet<SyntaxKind>() { SyntaxKind.FunctionDeclaration };
+        foreach (var stmt in pkg.Statements) {
+            if (kinds.Contains(stmt.Kind)) {
+                writer.WriteLine();
+            }
+            stmt.Accept(this, ctx);
         }
         return "";
     }
@@ -125,7 +129,6 @@ public class Emitter : Visitor<string, object?> {
 
         var ret = ConvertPrimitive(fn.ReturnType);
         var name = fn.Name.Accept(this, ctx);
-        writer.WriteLine();
         writer.WriteLine($"{ret} {name}({args}) {{");
         indent++;
         fn.Body?.Accept(this, ctx);
@@ -163,9 +166,14 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(Block node, object? ctx = null) {
+        var kinds = new HashSet<SyntaxKind>() { SyntaxKind.WhileStatement, SyntaxKind.DoStatement };
         foreach (var stmt in node.Statements) {
+            if (kinds.Contains(stmt.Kind)) {
+                writer.WriteLine();
+            }
             writer.Write(Indent());
             stmt.Accept(this, ctx);
+
         }
 
         return "";
