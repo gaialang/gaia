@@ -1,9 +1,9 @@
-using Gaia.Compiler;
+using Gaia.Domain;
 
 namespace Gaia.AST;
 
 public sealed class BinaryExpression : Expression {
-    public BinaryExpression(Token token, Expression left, Expression right) {
+    public BinaryExpression(SyntaxKind token, Expression left, Expression right) {
         OperatorToken = token;
         Left = left;
         Right = right;
@@ -12,7 +12,7 @@ public sealed class BinaryExpression : Expression {
 
     public Expression Left { get; }
     public Expression Right { get; }
-    public Token OperatorToken { get; }
+    public SyntaxKind OperatorToken { get; }
 
     public SyntaxKind Kind { get; }
 

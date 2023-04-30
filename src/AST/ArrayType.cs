@@ -1,9 +1,11 @@
+using Gaia.Domain;
+
 namespace Gaia.AST;
 
-public class ArrayType : TypeInfo {
-    public TypeInfo ElementType { get; }
+public class ArrayType : BaseNode {
+    public Expression ElementType { get; }
 
-    public ArrayType(TypeInfo elem) : base(TypeKind.ArrayType) {
+    public ArrayType(Expression elem, int pos, int end) : base(SyntaxKind.ArrayType, pos, end) {
         ElementType = elem;
     }
 }

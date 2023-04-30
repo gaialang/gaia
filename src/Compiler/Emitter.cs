@@ -1,5 +1,7 @@
 using System.Text;
 using Gaia.AST;
+using Gaia.Domain;
+using static Gaia.Domain.SyntaxKindText;
 
 namespace Gaia.Compiler;
 
@@ -17,7 +19,7 @@ public class Emitter : Visitor<string, object?> {
         writer.WriteLine("#include <stdbool.h>");
 
         // TODO: optimize indentations.
-        var kinds = new HashSet<SyntaxKind>() { SyntaxKind.FunctionDeclaration };
+        var kinds = new HashSet<SyntaxKind>() { SyntaxKind.FunctionDeclaration, SyntaxKind.VariableDeclaration, SyntaxKind.StructKeyword };
         foreach (var stmt in pkg.Statements) {
             if (kinds.Contains(stmt.Kind)) {
                 writer.WriteLine();
@@ -37,7 +39,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(VariableDeclaration s, object? ctx = null) {
-        var t = ToCType(s.Name);
+        var t = CType(s);
         if (s.Initializer is null) {
             writer.WriteLine($"{t};");
         } else {
@@ -47,22 +49,29 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    private static string ToCType(Identifier id) {
-        var t = id.TypeInfo;
+    private static string CType(VariableDeclaration decl) {
+        var t = decl.Type;
         if (t is ArrayType) {
-            return ConvertArray(id);
+            return ConvertArray(decl);
         }
         if (t is IndexedAccessType) {
-            return ConvertIndexedAccess(id);
+            return ConvertIndexedAccess(decl);
         }
 
-        var s = ConvertPrimitive(t);
-        return $"{s} {id.Name}";
+        var st = TokenStrings[t.Kind];
+        return $"{decl} {decl.Name.Name}";
     }
 
-    private static string ConvertArray(Identifier id) {
+    private static string CPrimitive(SyntaxKind kind) {
+        if (kind is SyntaxKind.StringKeyword) {
+            return "char*";
+        }
+        return TokenStrings[kind];
+    }
+
+    private static string ConvertArray(VariableDeclaration decl) {
         var sb = new StringBuilder();
-        var arr = id.TypeInfo;
+        var arr = decl.Type;
 
         do {
             var x = (ArrayType)arr;
@@ -70,16 +79,15 @@ public class Emitter : Visitor<string, object?> {
             arr = x.ElementType;
         } while (arr is ArrayType);
 
-        var primitive = arr;
-
-        var pre = ConvertPrimitive(primitive);
+        var token = (BaseTokenNode)arr;
+        var pre = TokenStrings[token.Kind];
         var post = string.Join("", sb);
-        return $"{pre} {id.Name}{post}";
+        return $"{pre} {decl.Name.Name}{post}";
     }
 
-    private static string ConvertIndexedAccess(Identifier id) {
+    private static string ConvertIndexedAccess(VariableDeclaration decl) {
         var sb = new StringBuilder();
-        var arr = id.TypeInfo;
+        var arr = decl.Type;
 
         do {
             var x = (IndexedAccessType)arr;
@@ -87,47 +95,37 @@ public class Emitter : Visitor<string, object?> {
             arr = x.ObjectType;
         } while (arr is IndexedAccessType);
 
-        var obj = arr;
-        var pre = ConvertPrimitive(obj);
+        var token = (BaseTokenNode)arr;
+        var pre = TokenStrings[token.Kind];
         var post = string.Join("", sb);
-        return $"{pre} {id.Name}{post}";
-    }
-
-    private static string ConvertPrimitive(TypeInfo t) {
-        var map = new Dictionary<TypeKind, string> {
-            {TypeKind.Int, "int"}
-        };
-        return map[t.Kind];
+        return $"{pre} {decl.Name.Name}{post}";
     }
 
     public string Visit(UnaryExpression n, object? ctx = null) {
+        var op = TokenStrings[n.Operator];
         var operand = n.Operand.Accept(this, ctx);
-        return $"{n.Operator.Lexeme}{operand}";
+        return $"{op}{operand}";
+    }
+
+    public string Visit(BaseTokenNode n, object? ctx = null) {
+        return TokenStrings[n.Kind];
     }
 
     public string Visit(BinaryExpression n, object? ctx = null) {
         var lhs = n.Left.Accept(this, ctx);
         var rhs = n.Right.Accept(this, ctx);
-        return $"{lhs} {n.OperatorToken.Lexeme} {rhs}";
-    }
-
-    public string Visit(IntLiteral node, object? ctx = null) {
-        return node.Text;
-    }
-
-    public string Visit(FloatLiteral node, object? ctx = null) {
-        return node.Text;
+        return $"{lhs} {n.OperatorToken} {rhs}";
     }
 
     public string Visit(FunctionDeclaration fn, object? ctx = null) {
         var list = new List<string>();
         foreach (var item in fn.Parameters) {
-            var t = ConvertPrimitive(item.TypeInfo);
+            var t = CPrimitive(item.Type);
             list.Add($"{t} {item.Name}");
         }
         var args = string.Join(", ", list);
 
-        var ret = ConvertPrimitive(fn.ReturnType);
+        var ret = CType(fn.ReturnType);
         var name = fn.Name.Accept(this, ctx);
         writer.WriteLine($"{ret} {name}({args}) {{");
         indent++;
@@ -173,18 +171,17 @@ public class Emitter : Visitor<string, object?> {
             }
             writer.Write(Indent());
             stmt.Accept(this, ctx);
-
         }
 
         return "";
     }
 
-    public string Visit(BoolLiteral node, object? ctx = null) {
-        return node.Text;
-    }
-
-    public string Visit(StringLiteral node, object? ctx = null) {
-        return $"\"{node.Text}\"";
+    public string Visit(LiteralLikeNode node, object? ctx = null) {
+        if (node.Kind == SyntaxKind.StringLiteral) {
+            return $"\"{node.Text}\"";
+        } else {
+            return node.Text;
+        }
     }
 
     public string Visit(BreakStatement node, object? ctx = null) {
@@ -272,6 +269,18 @@ public class Emitter : Visitor<string, object?> {
         }
         var elems = string.Join(", ", list);
         return $"{{{elems}}}";
+    }
+
+    public string Visit(BaseNode node, object? ctx = null) {
+        return "";
+    }
+
+    public string Visit(StructDeclaration node, object? ctx = null) {
+        return "";
+    }
+
+    public string Visit(PropertySignature node, object? ctx = null) {
+        return "";
     }
 
     private string Indent() {

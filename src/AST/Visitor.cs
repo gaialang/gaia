@@ -5,8 +5,7 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(Identifier node, TContext ctx);
     TResult Visit(VariableDeclaration node, TContext ctx);
     TResult Visit(UnaryExpression node, TContext ctx);
-    TResult Visit(IntLiteral node, TContext ctx);
-    TResult Visit(FloatLiteral node, TContext ctx);
+    TResult Visit(LiteralLikeNode node, TContext ctx);
     TResult Visit(FunctionDeclaration node, TContext ctx);
     TResult Visit(WhileStatement node, TContext ctx);
     TResult Visit(BinaryExpression node, TContext ctx);
@@ -14,7 +13,6 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(AssignStatement node, TContext ctx);
     TResult Visit(ReturnStatement node, TContext ctx);
     TResult Visit(ImportDeclaration node, TContext ctx);
-    TResult Visit(BoolLiteral node, TContext ctx);
     TResult Visit(IfStatement node, TContext ctx);
     TResult Visit(BreakStatement node, TContext ctx);
     TResult Visit(DoStatement node, TContext ctx);
@@ -22,6 +20,8 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(ElementAccessExpression node, TContext ctx);
     TResult Visit(CallExpression node, TContext ctx);
     TResult Visit(ExpressionStatement node, TContext ctx);
-    TResult Visit(StringLiteral node, TContext ctx);
     TResult Visit(ArrayLiteralExpression node, TContext ctx);
+    TResult Visit(StructDeclaration node, TContext ctx);
+    TResult Visit(PropertySignature node, TContext ctx);
+    TResult Visit(BaseNode node, TContext ctx);
 }

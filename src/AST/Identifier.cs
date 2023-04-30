@@ -1,14 +1,17 @@
+using Gaia.Domain;
+
 namespace Gaia.AST;
 
 public sealed class Identifier : Expression {
-    public Identifier(string name, TypeInfo t) {
+    public Identifier(string name) {
         Name = name;
-        TypeInfo = t;
         Kind = SyntaxKind.Identifier;
     }
 
+    /// <summary>
+    /// Maybe escapedText?
+    /// </summary>
     public string Name { get; }
-    public TypeInfo TypeInfo { get; }
 
     public SyntaxKind Kind { get; }
 

@@ -1,11 +1,11 @@
-using Gaia.Compiler;
+using Gaia.Domain;
 
 namespace Gaia.AST;
 
 public sealed class UnaryExpression : Expression {
-    public Token Operator { get; }
+    public SyntaxKind Operator { get; }
     public Node Operand { get; }
-    public UnaryExpression(Token op, Node operand) {
+    public UnaryExpression(SyntaxKind op, Node operand) {
         Operator = op;
         Operand = operand;
         Kind = SyntaxKind.UnaryExpression;

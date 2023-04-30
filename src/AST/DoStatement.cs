@@ -1,3 +1,5 @@
+using Gaia.Domain;
+
 namespace Gaia.AST;
 
 public class DoStatement : Statement {

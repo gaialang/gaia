@@ -1,3 +1,5 @@
+using Gaia.Domain;
+
 namespace Gaia.AST;
 
 public sealed class WhileStatement : Statement {

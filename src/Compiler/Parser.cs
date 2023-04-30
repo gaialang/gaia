@@ -1,15 +1,19 @@
 using Gaia.AST;
+using Gaia.Domain;
+using static Gaia.Domain.SyntaxKindText;
 
 namespace Gaia.Compiler;
 
 public sealed class Parser {
     private readonly Scanner scanner;
-    private Token currentToken;
+    private SyntaxKind currentToken;
     private Env? top = null;
+
     private readonly Dictionary<string, int> binaryOperatorPrecedence = new() {
         { "*", 13 },
         { "/", 13 },
         { "%", 13 },
+
         { "+", 12 },
         { "-", 12 },
 
@@ -17,19 +21,24 @@ public sealed class Parser {
         { "<=", 10 },
         { ">", 10 },
         { ">=", 10 },
+
         { "==", 9 },
         { "!=", 9 },
+
         { "&", 8 },
 
         { "|", 6 },
+
         { "&&", 5 },
+
         { "||", 4 },
     };
+
     private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-", "!" };
 
     public Parser(Scanner scanner) {
         this.scanner = scanner;
-        currentToken = this.scanner.Scan();
+        currentToken = scanner.Scan();
     }
 
     public Node Parse() {
@@ -40,12 +49,20 @@ public sealed class Parser {
     /// Return the next token.
     /// </summary>
     /// <returns></returns>
-    private Token NextToken() {
+    private SyntaxKind NextToken() {
         return currentToken = scanner.Scan();
     }
 
-    private Token GetToken() {
+    /// <summary>
+    /// Use this method instead of using to currentToken directly.
+    /// </summary>
+    /// <returns></returns>
+    private SyntaxKind Token() {
         return currentToken;
+    }
+
+    private string GetTokenValue() {
+        return scanner.TokenValue;
     }
 
     public static void Error(string s) {
@@ -56,27 +73,26 @@ public sealed class Parser {
     /// Match and move to the next token.
     /// </summary>
     /// <param name="t"></param>
-    private bool ParseExpected(TokenType t, bool shouldAdvance = true) {
-        if (currentToken.Type == t) {
+    private bool ParseExpected(SyntaxKind t, bool shouldAdvance = true) {
+        if (Token() == t) {
             if (shouldAdvance) {
                 NextToken();
             }
             return true;
         }
 
-        Error($"expected {t}, but got {currentToken}");
+        Error($"expected {t}, but got {Token()}");
         return false;
     }
 
     private bool CanParseSemicolon() {
-        var kind = currentToken.Type;
         // If there's a real semicolon, then we can always parse it out.
-        if (kind == TokenType.Semicolon) {
+        if (Token() == SyntaxKind.SemicolonToken) {
             return true;
         }
 
         // We can parse out an optional semicolon in ASI cases in the following cases.
-        return kind == TokenType.RBrace || kind == TokenType.EndOfFile || scanner.HasPrecedingLineBreak();
+        return Token() == SyntaxKind.CloseBraceToken || Token() == SyntaxKind.EndOfFileToken || scanner.HasPrecedingLineBreak();
     }
 
     private bool TryParseSemicolon() {
@@ -84,7 +100,7 @@ public sealed class Parser {
             return false;
         }
 
-        if (currentToken.Type == TokenType.Semicolon) {
+        if (Token() == SyntaxKind.SemicolonToken) {
             // consume the semicolon if it was explicitly provided.
             NextToken();
         }
@@ -92,12 +108,20 @@ public sealed class Parser {
         return true;
     }
 
+    private int GetNodePos() {
+        return scanner.FullStartPos;
+    }
+
+    private int GetTokenEnd() {
+        return scanner.TokenEnd;
+    }
+
     private bool ParseSemicolon() {
-        return TryParseSemicolon() || ParseExpected(TokenType.Semicolon);
+        return TryParseSemicolon() || ParseExpected(SyntaxKind.SemicolonToken);
     }
 
     public Statement ParsePackage() {
-        if (currentToken.Type != TokenType.PackageKeyword) {
+        if (Token() != SyntaxKind.PackageKeyword) {
             Error($"expected package, but got {currentToken}");
         }
 
@@ -105,11 +129,12 @@ public sealed class Parser {
         top = new Env(top);
 
         // Match package statement.
-        ParseExpected(TokenType.PackageKeyword);
-        var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
-        var id = new Identifier(tok.Lexeme, TypeInfo.Package);
-        top?.Add(tok.Lexeme, id);
+        ParseExpected(SyntaxKind.PackageKeyword);
+        var tok = Token();
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        var id = new Identifier(tokenValue);
+        top?.Add(tokenValue, id);
         ParseSemicolon();
 
         var list = TopLevelStatements();
@@ -125,15 +150,19 @@ public sealed class Parser {
         var imports = ImportDeclarations();
         list.AddRange(imports);
 
-        while (currentToken.Type != TokenType.EndOfFile) {
-            switch (currentToken.Type) {
-            case TokenType.VarKeyword:
+        while (Token() != SyntaxKind.EndOfFileToken) {
+            switch (Token()) {
+            case SyntaxKind.VarKeyword:
                 var varStmt = ParseVar();
                 list.Add(varStmt);
                 break;
-            case TokenType.FuncKeyword:
+            case SyntaxKind.FuncKeyword:
                 var funcStmt = ParseFuncStatement();
                 list.Add(funcStmt);
+                break;
+            case SyntaxKind.StructKeyword:
+                var structStmt = ParseStruct();
+                list.Add(structStmt);
                 break;
             default:
                 break;
@@ -143,55 +172,81 @@ public sealed class Parser {
         return list;
     }
 
+    // TODO:
+    public Statement ParseStruct() {
+        ParseExpected(SyntaxKind.StructKeyword);
+        var tok = currentToken;
+        ParseExpected(SyntaxKind.Identifier);
+        var tokenValue = GetTokenValue();
+        var id = new Identifier(tokenValue);
+        top?.Add(tokenValue, id);
+
+        ParseExpected(SyntaxKind.OpenBraceToken);
+        var props = PropertyList();
+        ParseExpected(SyntaxKind.CloseBraceToken);
+
+        return new StructDeclaration(id, props);
+    }
+
+    private List<PropertySignature> PropertyList() {
+        var list = new List<PropertySignature>();
+        while (Token() == SyntaxKind.Identifier) {
+            var tok = currentToken;
+            var tokenValue = GetTokenValue();
+            ParseExpected(SyntaxKind.Identifier);
+            var id = new Identifier(tokenValue);
+            top?.Add(tokenValue, id);
+            // TODO:
+            // list.Add(id);
+        }
+        return list;
+    }
+
     public List<Statement> ImportDeclarations() {
         var list = new List<Statement>();
-        while (currentToken.Type == TokenType.ImportKeyword) {
+        while (Token() == SyntaxKind.ImportKeyword) {
             NextToken();
             var tok = currentToken;
-            ParseExpected(TokenType.StringLiteral);
+            var tokenValue = GetTokenValue();
+            ParseExpected(SyntaxKind.StringLiteral);
             ParseSemicolon();
-            var i = new ImportDeclaration(tok.Lexeme);
+            var i = new ImportDeclaration(tokenValue);
             list.Add(i);
         }
         return list;
     }
 
-    public List<Statement> VarDeclarations() {
-        var list = new List<Statement>();
-        while (currentToken.Type == TokenType.VarKeyword) {
-            var varStmt = ParseVar();
-            list.Add(varStmt);
-        }
-        return list;
-    }
-
     public Statement ParseVar() {
-        ParseExpected(TokenType.VarKeyword);
+        ParseExpected(SyntaxKind.VarKeyword);
         var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
-        ParseExpected(TokenType.Colon);
-        var p = GetTypeInfo();
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        ParseExpected(SyntaxKind.ColonToken);
+        var typ = GetTypeInfo();
 
         Expression? s = null;
-        if (currentToken.Type != TokenType.Equal) {
+        if (Token() != SyntaxKind.EqualsToken) {
             ParseSemicolon();
         } else {
-            ParseExpected(TokenType.Equal);
+            ParseExpected(SyntaxKind.EqualsToken);
             s = ParseExpression();
             ParseSemicolon();
         }
-        var id = new Identifier(tok.Lexeme, p);
-        top?.Add(tok.Lexeme, id);
-        var VarStmt = new VariableDeclaration(id, s);
+        var id = new Identifier(tokenValue);
+        top?.Add(tokenValue, id);
+        var VarStmt = new VariableDeclaration(id, typ, s);
         return VarStmt;
     }
 
     // Get a type for the variable.
-    private TypeInfo GetTypeInfo() {
-        TypeInfo p;
-        switch (currentToken.Type) {
-        case TokenType.IntKeyword:
-            p = TypeInfo.Int;
+    private Expression GetTypeInfo() {
+        Expression typ;
+        var token = Token();
+        var pos = GetNodePos();
+        switch (token) {
+        case SyntaxKind.IntKeyword:
+        case SyntaxKind.StringKeyword:
+            typ = new BaseTokenNode(token, pos, GetTokenEnd());
             NextToken();
             break;
         default:
@@ -199,10 +254,10 @@ public sealed class Parser {
             throw new Exception();
         }
 
-        if (currentToken.Type != TokenType.LBracket) {
-            return p;
+        if (Token() != SyntaxKind.OpenBracketToken) {
+            return typ;
         } else {
-            return ParseArray(p);
+            return ParseArray(typ);
         }
     }
 
@@ -211,15 +266,16 @@ public sealed class Parser {
     /// </summary>
     /// <param name="p"></param>
     /// <returns></returns>
-    private TypeInfo ParseArray(TypeInfo p) {
-        ParseExpected(TokenType.LBracket);
+    private Expression ParseArray(Expression p) {
+        ParseExpected(SyntaxKind.OpenBracketToken);
         var tok = currentToken;
-        switch (tok.Type) {
-        case TokenType.IntLiteral:
+        var tokenValue = GetTokenValue();
+        switch (tok) {
+        case SyntaxKind.IntLiteral:
             NextToken();
-            ParseExpected(TokenType.RBracket);
-            return ParseIndexedAccess(p, tok.Lexeme);
-        case TokenType.RBracket:
+            ParseExpected(SyntaxKind.CloseBracketToken);
+            return ParseIndexedAccess(p, tokenValue);
+        case SyntaxKind.CloseBracketToken:
             NextToken();
             return ParseArrayType(p);
         default:
@@ -228,39 +284,42 @@ public sealed class Parser {
         }
     }
 
-    private ArrayType ParseArrayType(TypeInfo a) {
-        if (currentToken.Type == TokenType.LBracket) {
+    private ArrayType ParseArrayType(Expression a) {
+        var pos = GetNodePos();
+        if (Token() == SyntaxKind.OpenBracketToken) {
             NextToken();
-            ParseExpected(TokenType.RBracket);
+            ParseExpected(SyntaxKind.CloseBracketToken);
             a = ParseArrayType(a);
         }
-        return new ArrayType(a);
+        return new ArrayType(a, pos, GetTokenEnd());
     }
 
-    private IndexedAccessType ParseIndexedAccess(TypeInfo p, string s) {
-        if (currentToken.Type == TokenType.LBracket) {
+    private IndexedAccessType ParseIndexedAccess(Expression p, string s) {
+        var pos = GetNodePos();
+        if (Token() == SyntaxKind.OpenBracketToken) {
             NextToken();
-            var tok = currentToken;
-            ParseExpected(TokenType.IntLiteral);
-            ParseExpected(TokenType.RBracket);
-            p = ParseIndexedAccess(p, tok.Lexeme);
+            var tokenValue = GetTokenValue();
+            ParseExpected(SyntaxKind.IntLiteral);
+            ParseExpected(SyntaxKind.CloseBracketToken);
+            p = ParseIndexedAccess(p, tokenValue);
         }
-        return new IndexedAccessType(p, s);
+        return new IndexedAccessType(p, s, pos, GetTokenEnd());
     }
 
-    private Expression ParseUnary() {
-        if (unaryOperators.Contains(currentToken.Lexeme)) {
+    private Expression ParseUnaryExpression() {
+        var tokenValue = GetTokenValue();
+        if (unaryOperators.Contains(tokenValue)) {
             NextToken();
-            var op = currentToken;
-            var operand = ParseUnary();
+            var op = Token();
+            var operand = ParseUnaryExpression();
             return new UnaryExpression(op, operand);
         } else {
-            return ParsePrimary();
+            return ParsePrimaryExpression();
         }
     }
 
-    private int GetPrecedence(Token token) {
-        if (binaryOperatorPrecedence.TryGetValue(token.Lexeme, out var p)) {
+    private int GetPrecedence(SyntaxKind token) {
+        if (binaryOperatorPrecedence.TryGetValue(TokenStrings[token], out var p)) {
             return p;
         }
 
@@ -271,39 +330,30 @@ public sealed class Parser {
     /// Factor.
     /// </summary>
     /// <returns></returns>
-    private Expression ParsePrimary() {
+    private Expression ParsePrimaryExpression() {
         Expression x;
-        switch (currentToken.Type) {
-        case TokenType.LParen:
+        var token = Token();
+        var pos = GetNodePos();
+        var tokenValue = GetTokenValue();
+        switch (token) {
+        case SyntaxKind.OpenParenToken:
             // Ignore unnecessary parens.
             NextToken();
             x = ParseExpression();
-            ParseExpected(TokenType.RParen);
+            ParseExpected(SyntaxKind.CloseParenToken);
             return x;
-        case TokenType.IntLiteral:
-            x = new IntLiteral(currentToken.Lexeme, currentToken.Pos);
+        case SyntaxKind.IntLiteral:
+        case SyntaxKind.FloatLiteral:
+        case SyntaxKind.StringLiteral:
+        case SyntaxKind.TrueKeyword:
+        case SyntaxKind.FalseKeyword:
+            x = new LiteralLikeNode(token, pos, GetTokenEnd(), tokenValue);
             NextToken();
             return x;
-        case TokenType.FloatLiteral:
-            x = new FloatLiteral(currentToken.Lexeme, currentToken.Pos);
-            NextToken();
-            return x;
-        case TokenType.StringLiteral:
-            x = new StringLiteral(currentToken.Lexeme, currentToken.Pos);
-            NextToken();
-            return x;
-        case TokenType.TrueKeyword:
-            x = new BoolLiteral(currentToken.Lexeme, currentToken.Pos);
-            NextToken();
-            return x;
-        case TokenType.FalseKeyword:
-            x = new BoolLiteral(currentToken.Lexeme, currentToken.Pos);
-            NextToken();
-            return x;
-        case TokenType.Identifier:
-            return ParseAccessOrCall();
-        case TokenType.LBracket:
-            return ParseArrayLiteral();
+        case SyntaxKind.Identifier:
+            return ParseAccessOrCall(tokenValue);
+        case SyntaxKind.OpenBracketToken:
+            return ParseArrayLiteral(pos);
         default:
             Error("Primary has a bug");
             // unreachable
@@ -311,48 +361,43 @@ public sealed class Parser {
         }
     }
 
-    public Expression ParseArrayLiteral() {
-        ParseExpected(TokenType.LBracket);
+    public Expression ParseArrayLiteral(int pos) {
+        ParseExpected(SyntaxKind.OpenBracketToken);
         var list = new List<Expression>();
-        var first = ParseUnary();
+        var first = ParseUnaryExpression();
         list.Add(first);
-        while (currentToken.Type == TokenType.Comma) {
-            ParseExpected(TokenType.Comma);
-            var elem = ParseUnary();
+        while (Token() == SyntaxKind.CommaToken) {
+            ParseExpected(SyntaxKind.CommaToken);
+            var elem = ParseUnaryExpression();
             list.Add(elem);
         }
-        ParseExpected(TokenType.RBracket);
-        return new ArrayLiteralExpression(list, 1);
+        ParseExpected(SyntaxKind.CloseBracketToken);
+        return new ArrayLiteralExpression(list, pos);
     }
 
-    private Expression ParseAccessOrCall() {
-        var id = top?.Get(currentToken.Lexeme);
+    private Expression ParseAccessOrCall(string tokenValue) {
+        var id = top?.Get(tokenValue);
         if (id is null) {
             // Error($"{look} undeclared");
             // TODO: Handle undefined functions
-            id = new Identifier(currentToken.Lexeme, TypeInfo.Func);
+            id = new Identifier(tokenValue);
         }
         NextToken();
 
-        if (id!.TypeInfo == TypeInfo.Func) {
-            if (currentToken.Type != TokenType.LParen) {
-                return id;
-            } else {
-                return ParseCall(id);
-            }
+        if (Token() == SyntaxKind.OpenParenToken) {
+            return ParseCall(id);
+        } else if (Token() == SyntaxKind.OpenBracketToken) {
+            return ParseAccess(id);
+
         } else {
-            if (currentToken.Type != TokenType.LBracket) {
-                return id;
-            } else {
-                return ParseAccess(id);
-            }
+            return id;
         }
     }
 
     // Actual arguments
     private List<Expression> ArgumentList() {
         var args = new List<Expression>();
-        if (currentToken.Type == TokenType.RParen) {
+        if (Token() == SyntaxKind.CloseParenToken) {
             return args;
         }
 
@@ -364,11 +409,11 @@ public sealed class Parser {
     }
 
     private void ArgumentRest(List<Expression> args) {
-        if (currentToken.Type != TokenType.Comma) {
+        if (Token() != SyntaxKind.CommaToken) {
             return;
         }
 
-        ParseExpected(TokenType.Comma);
+        ParseExpected(SyntaxKind.CommaToken);
         var rest = ParseExpression();
         args.Add(rest);
 
@@ -377,11 +422,11 @@ public sealed class Parser {
     }
 
     private CallExpression ParseCall(Expression expr) {
-        ParseExpected(TokenType.LParen);
+        ParseExpected(SyntaxKind.OpenParenToken);
         var args = ArgumentList();
-        ParseExpected(TokenType.RParen);
+        ParseExpected(SyntaxKind.CloseParenToken);
         var call = new CallExpression(expr, args);
-        if (currentToken.Type == TokenType.LParen) {
+        if (Token() == SyntaxKind.OpenParenToken) {
             call = ParseCall(call);
         }
 
@@ -392,16 +437,17 @@ public sealed class Parser {
         var savedEnv = top;
         top = new Env(top);
 
-        ParseExpected(TokenType.FuncKeyword);
-        var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
+        ParseExpected(SyntaxKind.FuncKeyword);
+        var tokenValue = GetTokenValue();
 
-        var funcId = new Identifier(tok.Lexeme, TypeInfo.Func);
+        ParseExpected(SyntaxKind.Identifier);
+
+        var funcId = new Identifier(tokenValue);
         top?.Add(funcId.Name, funcId);
 
-        ParseExpected(TokenType.LParen);
+        ParseExpected(SyntaxKind.OpenParenToken);
         var args = ParameterList();
-        ParseExpected(TokenType.RParen);
+        ParseExpected(SyntaxKind.CloseParenToken);
 
         var returnType = ReturnType();
         var b = ParseBlock();
@@ -411,15 +457,15 @@ public sealed class Parser {
     // Formal parameters
     private List<Identifier> ParameterList() {
         var args = new List<Identifier>();
-        if (currentToken.Type == TokenType.RParen) {
+        if (Token() == SyntaxKind.CloseParenToken) {
             return args;
         }
 
-        var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
-        ParseExpected(TokenType.Colon);
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        ParseExpected(SyntaxKind.ColonToken);
         var p = GetTypeInfo();
-        var id = new Identifier(tok.Lexeme, p);
+        var id = new Identifier(tokenValue);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -428,16 +474,16 @@ public sealed class Parser {
     }
 
     private void ParameterRest(List<Identifier> args) {
-        if (currentToken.Type != TokenType.Comma) {
+        if (Token() != SyntaxKind.CommaToken) {
             return;
         }
 
-        ParseExpected(TokenType.Comma);
-        var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
-        ParseExpected(TokenType.Colon);
+        ParseExpected(SyntaxKind.CommaToken);
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        ParseExpected(SyntaxKind.ColonToken);
         var p = GetTypeInfo();
-        var id = new Identifier(tok.Lexeme, p);
+        var id = new Identifier(tokenValue);
         top?.Add(id.Name, id);
         args.Add(id);
 
@@ -445,50 +491,50 @@ public sealed class Parser {
         ParameterRest(args);
     }
 
-    private TypeInfo ReturnType() {
-        if (currentToken.Type != TokenType.Arrow) {
-            return new TypeInfo(TypeKind.Nil);
+    private Expression ReturnType() {
+        if (Token() != SyntaxKind.MinusGreaterThanToken) {
+            return new LiteralLikeNode(SyntaxKind.VoidKeyword, GetNodePos(), GetTokenEnd(), "void");
         }
 
-        ParseExpected(TokenType.Arrow);
+        ParseExpected(SyntaxKind.MinusGreaterThanToken);
         var p = GetTypeInfo();
         return p;
     }
 
     public Block ParseBlock() {
-        ParseExpected(TokenType.LBrace);
+        ParseExpected(SyntaxKind.OpenBraceToken);
 
         var savedEnv = top;
         top = new Env(top);
 
         var statements = StatementList();
 
-        ParseExpected(TokenType.RBrace);
+        ParseExpected(SyntaxKind.CloseBraceToken);
         top = savedEnv;
         return new Block(statements);
     }
 
     private Expression ParseExpression(int precedence = 0) {
-        var lhs = ParseUnary();
+        var lhs = ParseUnaryExpression();
 
-        while (precedence < GetPrecedence(currentToken)) {
-            lhs = ParseBinary(lhs);
+        while (precedence < GetPrecedence(Token())) {
+            lhs = ParseBinaryExpression(lhs);
         }
 
         return lhs;
     }
 
-    private Expression ParseBinary(Expression lhs) {
-        var tok = currentToken;
-        var precedence = GetPrecedence(tok);
+    private Expression ParseBinaryExpression(Expression lhs) {
+        var token = Token();
+        var precedence = GetPrecedence(token);
         NextToken();
         var rhs = ParseExpression(precedence);
-        return new BinaryExpression(tok, lhs, rhs);
+        return new BinaryExpression(token, lhs, rhs);
     }
 
     private List<Statement> StatementList() {
         var list = new List<Statement>();
-        while (currentToken.Type != TokenType.RBrace && currentToken.Type != TokenType.FuncKeyword && currentToken.Type != TokenType.EndOfFile) {
+        while (Token() != SyntaxKind.CloseBraceToken && Token() != SyntaxKind.FuncKeyword && Token() != SyntaxKind.EndOfFileToken) {
             var stmt = ParseStatement();
             if (stmt is not null) {
                 list.Add(stmt);
@@ -498,36 +544,36 @@ public sealed class Parser {
     }
 
     private Statement? ParseStatement() {
-        switch (currentToken.Type) {
-        case TokenType.Semicolon:
+        switch (Token()) {
+        case SyntaxKind.SemicolonToken:
             NextToken();
             return null;
-        case TokenType.VarKeyword:
+        case SyntaxKind.VarKeyword:
             return ParseVar();
-        case TokenType.WhileKeyword:
+        case SyntaxKind.WhileKeyword:
             NextToken();
             var whileExpr = ParseExpression();
             var whileBlock = ParseBlock();
             var whileStmt = new WhileStatement(whileExpr, whileBlock);
             return whileStmt;
-        case TokenType.IfKeyword:
+        case SyntaxKind.IfKeyword:
             return ParseIfStatement();
-        case TokenType.BreakKeyword:
+        case SyntaxKind.BreakKeyword:
             NextToken();
             ParseSemicolon();
             return new BreakStatement();
-        case TokenType.DoKeyword:
+        case SyntaxKind.DoKeyword:
             NextToken();
             var doBlock = ParseBlock();
-            ParseExpected(TokenType.WhileKeyword);
+            ParseExpected(SyntaxKind.WhileKeyword);
             var doExpr = ParseExpression();
             ParseSemicolon();
             return new DoStatement(doBlock, doExpr);
-        case TokenType.LBrace:
+        case SyntaxKind.OpenBraceToken:
             return ParseBlock();
-        case TokenType.ReturnKeyword:
+        case SyntaxKind.ReturnKeyword:
             return ParseReturn();
-        case TokenType.Identifier:
+        case SyntaxKind.Identifier:
             return ParseAssignOrCall();
         default:
             Error("unknown statement");
@@ -536,15 +582,15 @@ public sealed class Parser {
     }
 
     private Statement? ParseAssignOrCall() {
-        var tok = currentToken;
-        ParseExpected(TokenType.Identifier);
-        var id = top?.Get(tok.Lexeme);
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        var id = top?.Get(tokenValue);
         if (id is null) {
             // Error($"{tok} undeclared");
-            id = new Identifier(tok.Lexeme, TypeInfo.Func);
+            id = new Identifier(tokenValue);
         }
 
-        if (id.TypeInfo == TypeInfo.Func) {
+        if (Token() == SyntaxKind.OpenParenToken) {
             var call = ParseCall(id);
             return new ExpressionStatement(call);
         } else {
@@ -553,15 +599,15 @@ public sealed class Parser {
     }
 
     private Statement ParseIfStatement() {
-        ParseExpected(TokenType.IfKeyword);
+        ParseExpected(SyntaxKind.IfKeyword);
         var expr = ParseExpression();
         var thenBlock = ParseBlock();
-        if (currentToken.Type != TokenType.ElseKeyword) {
+        if (Token() != SyntaxKind.ElseKeyword) {
             return new IfStatement(expr, thenBlock);
         }
-        ParseExpected(TokenType.ElseKeyword);
+        ParseExpected(SyntaxKind.ElseKeyword);
 
-        if (currentToken.Type != TokenType.IfKeyword) {
+        if (Token() != SyntaxKind.IfKeyword) {
             var elseBlock = ParseBlock();
             return new IfStatement(expr, thenBlock, elseBlock);
         }
@@ -571,12 +617,12 @@ public sealed class Parser {
     }
 
     public Statement ParseReturn() {
-        ParseExpected(TokenType.ReturnKeyword);
+        ParseExpected(SyntaxKind.ReturnKeyword);
 
         if (CanParseSemicolon()) {
             return new ReturnStatement();
         } else {
-            var s = ParseUnary();
+            var s = ParseUnaryExpression();
             ParseSemicolon();
             return new ReturnStatement(s);
         }
@@ -584,13 +630,13 @@ public sealed class Parser {
 
     private Statement? ParseAssign(Identifier id) {
         Statement? stmt = null;
-        if (currentToken.Type == TokenType.Equal) {
+        if (Token() == SyntaxKind.EqualsToken) {
             NextToken();
             stmt = new AssignStatement(id, ParseExpression());
         } else {
             // For array type
             var x = ParseAccess(id);
-            ParseExpected(TokenType.Equal);
+            ParseExpected(SyntaxKind.EqualsToken);
             stmt = new ElementAssignStatement(x, ParseExpression());
         }
 
@@ -599,11 +645,11 @@ public sealed class Parser {
     }
 
     public ElementAccessExpression ParseAccess(Expression expr) {
-        ParseExpected(TokenType.LBracket);
+        ParseExpected(SyntaxKind.OpenBracketToken);
         var index = ParseExpression();
-        ParseExpected(TokenType.RBracket);
+        ParseExpected(SyntaxKind.CloseBracketToken);
         var access = new ElementAccessExpression(expr, index);
-        if (currentToken.Type == TokenType.LBracket) {
+        if (Token() == SyntaxKind.OpenBracketToken) {
             access = ParseAccess(access);
         }
 

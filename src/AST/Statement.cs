@@ -1,7 +1,4 @@
 ﻿namespace Gaia.AST;
 
-/// <summary>
-/// Statement.
-/// </summary>
-public interface Statement : Node {
+public interface Statement: Node {
 }

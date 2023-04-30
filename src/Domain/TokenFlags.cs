@@ -1,4 +1,4 @@
-namespace Gaia.Compiler;
+namespace Gaia.Domain;
 
 public enum TokenFlags {
     None = 0,

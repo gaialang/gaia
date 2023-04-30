@@ -1,4 +1,6 @@
-﻿namespace Gaia.AST;
+﻿using Gaia.Domain;
+
+namespace Gaia.AST;
 
 public class Block : Statement {
     public readonly List<Statement> Statements;

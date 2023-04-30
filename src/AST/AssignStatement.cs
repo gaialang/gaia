@@ -1,4 +1,6 @@
-﻿namespace Gaia.AST;
+﻿using Gaia.Domain;
+
+namespace Gaia.AST;
 
 public class AssignStatement : Statement {
     public Identifier Left { get; }

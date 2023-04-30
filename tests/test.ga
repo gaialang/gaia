@@ -1,5 +1,9 @@
 package main
 
+struct Book {
+    title: string
+}
+
 var a: int = 0
 
 func main() -> int {
@@ -23,16 +27,10 @@ func foo(i: int, j: int) -> int {
         i = 4
     }
 
-    while true {
+    while i < 6 {
         i = i+1
-        if i >= j {
-            break
-        }
     }
 
-    do {
-        i=i+1
-    } while i < 30
     printf("%d", i)
     return i
 }
