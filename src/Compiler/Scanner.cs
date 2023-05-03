@@ -62,9 +62,9 @@ public class Scanner {
                 return AddToken(SyntaxKind.ExclamationToken);
             }
         case '"':
-            return AddToken(SyntaxKind.StringLiteral, ScanString());
+            return AddToken(SyntaxKind.StringLiteral, ScanString(ch));
         case '\'':
-            return AddToken(SyntaxKind.CharacterLiteral, ScanCharacter());
+            return AddToken(SyntaxKind.CharacterLiteral, ScanCharacter(ch));
         case ',':
             return AddToken(SyntaxKind.CommaToken);
         case '(':
@@ -126,13 +126,13 @@ public class Scanner {
             return AddToken(SyntaxKind.EndOfFileToken);
         default:
             if (char.IsLetter(ch)) {
-                return AddToken(SyntaxKind.Identifier, ScanIdentifier(ch));
+                return ScanIdentifier(ch);
             }
             if (char.IsDigit(ch)) {
-                return AddToken(SyntaxKind.IntLiteral, ScanNumber(ch));
+                return ScanNumber(ch);
             }
 
-            return token;
+            return SyntaxKind.Unknown;
         }
     }
 
@@ -146,7 +146,7 @@ public class Scanner {
         return token;
     }
 
-    private string ScanNumber(char ch) {
+    private SyntaxKind ScanNumber(char ch) {
         var b = new StringBuilder();
         b.Append(ch);
         while (char.IsDigit(PeekChar())) {
@@ -154,8 +154,8 @@ public class Scanner {
         }
 
         if (PeekChar() != '.') {
-            var s = b.ToString();
-            return s;
+            var numInt = b.ToString();
+            return AddToken(SyntaxKind.IntLiteral, numInt);
         }
 
         b.Append(ReadChar());
@@ -163,11 +163,11 @@ public class Scanner {
             b.Append(ReadChar());
         }
 
-        var str = b.ToString();
-        return str;
+        var numFloat = b.ToString();
+        return AddToken(SyntaxKind.FloatLiteral, numFloat);
     }
 
-    private string ScanIdentifier(char ch) {
+    private SyntaxKind ScanIdentifier(char ch) {
         var b = new StringBuilder();
         b.Append(ch);
 
@@ -178,30 +178,38 @@ public class Scanner {
         var s = b.ToString();
 
         if (TextToKeyword.TryGetValue(s, out var kind)) {
-            return s;
+            return AddToken(kind);
         }
 
-        return s;
+        return AddToken(SyntaxKind.Identifier, s);
     }
 
-    private string ScanString() {
+    private string ScanString(char ch) {
         var b = new StringBuilder();
+        b.Append(ch);
 
         while (PeekChar() != '"') {
             b.Append(ReadChar());
         }
-        ReadChar();
+        b.Append(ReadChar());
 
         var s = b.ToString();
 
         return s;
     }
 
-    private string ScanCharacter() {
-        var ch = ReadChar();
-        ReadChar();
+    private string ScanCharacter(char first) {
+        var b = new StringBuilder();
+        b.Append(first);
 
-        return ch.ToString();
+        if (PeekChar() != '\'') {
+            b.Append(ReadChar());
+            b.Append(ReadChar());
+        } else {
+            b.Append(ReadChar());
+        }
+
+        return b.ToString();
     }
 
     private char ReadChar() {

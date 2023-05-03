@@ -3,11 +3,10 @@ using Gaia.Domain;
 namespace Gaia.AST;
 
 public sealed class ArrayLiteralExpression : Expression {
-    public ArrayLiteralExpression(List<Expression> elems, int pos) {
+    public ArrayLiteralExpression(List<Expression> elems, int pos, int end) {
         Elements = elems;
         Pos = pos;
-        // TODO: how to deal with end pos?
-        End = pos;
+        End = end;
         Kind = SyntaxKind.ArrayLiteralExpression;
     }
 

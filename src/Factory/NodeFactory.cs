@@ -8,7 +8,7 @@ public static class NodeFactory {
         return BaseNodeFactory.CreateBaseTokenNode(kind);
     }
 
-    public static Expression createLiteralLikeNode(SyntaxKind kind,string text) {
+    public static Expression createLiteralLikeNode(SyntaxKind kind, string text) {
         return BaseNodeFactory.CreateBaseLiteralNode(kind, text);
     }
 }

@@ -6,14 +6,14 @@ public sealed class FunctionDeclaration : Statement {
     public FunctionDeclaration(Identifier name, List<Parameter> parameters, Expression returnType, Block body) {
         Name = name;
         Parameters = parameters;
-        ReturnType = returnType;
+        Type = returnType;
         Body = body;
         Kind = SyntaxKind.FunctionDeclaration;
     }
 
     public Identifier Name { get; }
     public List<Parameter> Parameters { get; }
-    public Expression ReturnType { get; }
+    public Expression Type { get; }
     public Block Body { get; private set; }
 
     public SyntaxKind Kind { get; }

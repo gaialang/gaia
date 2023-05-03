@@ -5,6 +5,8 @@ using static Gaia.Domain.SyntaxKindText;
 
 namespace Gaia.Compiler;
 
+public record TypeName(string Prefix, string Suffix = "");
+
 public class Emitter : Visitor<string, object?> {
     private Writer writer;
     private int indent = 0;
@@ -38,101 +40,104 @@ public class Emitter : Visitor<string, object?> {
         return id.Name;
     }
 
-    public string Visit(VariableDeclaration s, object? ctx = null) {
-        var t = CType(s);
-        if (s.Initializer is null) {
-            writer.WriteLine($"{t};");
+    public string Visit(VariableDeclaration node, object? ctx = null) {
+        var typeName = CType(node.Type);
+        var name = node.Name.Accept(this, ctx);
+        if (node.Initializer is null) {
+            writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix};");
         } else {
-            var val = s.Initializer.Accept(this, ctx);
-            writer.WriteLine($"{t} = {val};");
+            var val = node.Initializer.Accept(this, ctx);
+            writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix} = {val};");
         }
         return "";
     }
 
-    private static string CType(VariableDeclaration decl) {
-        var t = decl.Type;
-        if (t is ArrayType) {
-            return ConvertArray(decl);
+    private static TypeName CType(Expression node) {
+        if (node is ArrayType arr) {
+            return CArray(arr);
         }
-        if (t is IndexedAccessType) {
-            return ConvertIndexedAccess(decl);
+        if (node is IndexedAccessType acc) {
+            return CIndexedAccess(acc);
         }
 
-        var st = TokenStrings[t.Kind];
-        return $"{decl} {decl.Name.Name}";
+        var prefix = CPrimitive(node.Kind);
+        return new TypeName(prefix);
     }
 
     private static string CPrimitive(SyntaxKind kind) {
         if (kind is SyntaxKind.StringKeyword) {
             return "char*";
         }
-        return TokenStrings[kind];
+        return TokenToText[kind];
     }
 
-    private static string ConvertArray(VariableDeclaration decl) {
+    private static TypeName CArray(ArrayType node) {
         var sb = new StringBuilder();
-        var arr = decl.Type;
-
-        do {
-            var x = (ArrayType)arr;
+        sb.Insert(0, "[]");
+        var typ = node.ElementType;
+        while (typ is ArrayType arr) {
             sb.Insert(0, "[]");
-            arr = x.ElementType;
-        } while (arr is ArrayType);
+            typ = arr.ElementType;
+        }
 
-        var token = (BaseTokenNode)arr;
-        var pre = TokenStrings[token.Kind];
-        var post = string.Join("", sb);
-        return $"{pre} {decl.Name.Name}{post}";
+        var prefix = CPrimitive(typ.Kind);
+        var suffix = string.Join("", sb);
+        return new TypeName(prefix, suffix);
     }
 
-    private static string ConvertIndexedAccess(VariableDeclaration decl) {
+    private static TypeName CIndexedAccess(IndexedAccessType node) {
         var sb = new StringBuilder();
-        var arr = decl.Type;
+        sb.Insert(0, $"[{node.IndexType}]");
+        var typ = node.ObjectType;
+        while (typ is IndexedAccessType arr) {
+            sb.Insert(0, $"[{arr.IndexType}]");
+            typ = arr.ObjectType;
+        }
 
-        do {
-            var x = (IndexedAccessType)arr;
-            sb.Insert(0, $"[{x.IndexType}]");
-            arr = x.ObjectType;
-        } while (arr is IndexedAccessType);
-
-        var token = (BaseTokenNode)arr;
-        var pre = TokenStrings[token.Kind];
-        var post = string.Join("", sb);
-        return $"{pre} {decl.Name.Name}{post}";
+        var prefix = CPrimitive(typ.Kind);
+        var suffix = string.Join("", sb);
+        return new TypeName(prefix, suffix);
     }
 
     public string Visit(UnaryExpression n, object? ctx = null) {
-        var op = TokenStrings[n.Operator];
+        var op = TokenToText[n.Operator];
         var operand = n.Operand.Accept(this, ctx);
         return $"{op}{operand}";
     }
 
-    public string Visit(BaseTokenNode n, object? ctx = null) {
-        return TokenStrings[n.Kind];
+    public string Visit(KeywordLikeNode n, object? ctx = null) {
+        return TokenToText[n.Kind];
     }
 
     public string Visit(BinaryExpression n, object? ctx = null) {
         var lhs = n.Left.Accept(this, ctx);
         var rhs = n.Right.Accept(this, ctx);
-        return $"{lhs} {n.OperatorToken} {rhs}";
+        var op = TokenToText[n.OperatorToken];
+        return $"{lhs} {op} {rhs}";
     }
 
     public string Visit(FunctionDeclaration fn, object? ctx = null) {
         var list = new List<string>();
         foreach (var item in fn.Parameters) {
-            var t = CPrimitive(item.Type);
-            list.Add($"{t} {item.Name}");
+            var para = item.Accept(this, ctx);
+            list.Add(para);
         }
         var args = string.Join(", ", list);
 
-        var ret = CType(fn.ReturnType);
+        var returnTypeName = CType(fn.Type);
         var name = fn.Name.Accept(this, ctx);
-        writer.WriteLine($"{ret} {name}({args}) {{");
+        writer.WriteLine($"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({args}) {{");
         indent++;
         fn.Body?.Accept(this, ctx);
         writer.WriteLine("}");
         indent--;
         return "";
+    }
+
+    public string Visit(Parameter node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        var typeName = CType(node.Type);
+        return $"{typeName.Prefix} {name}{typeName.Suffix}";
     }
 
     public string Visit(WhileStatement node, object? ctx = null) {
@@ -177,11 +182,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(LiteralLikeNode node, object? ctx = null) {
-        if (node.Kind == SyntaxKind.StringLiteral) {
-            return $"\"{node.Text}\"";
-        } else {
-            return node.Text;
-        }
+        return node.Text;
     }
 
     public string Visit(BreakStatement node, object? ctx = null) {
@@ -271,7 +272,11 @@ public class Emitter : Visitor<string, object?> {
         return $"{{{elems}}}";
     }
 
-    public string Visit(BaseNode node, object? ctx = null) {
+    public string Visit(ArrayType node, object? ctx = null) {
+        return "";
+    }
+
+    public string Visit(IndexedAccessType node, object? ctx = null) {
         return "";
     }
 

@@ -23,5 +23,8 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(ArrayLiteralExpression node, TContext ctx);
     TResult Visit(StructDeclaration node, TContext ctx);
     TResult Visit(PropertySignature node, TContext ctx);
-    TResult Visit(BaseNode node, TContext ctx);
+    TResult Visit(KeywordLikeNode node, TContext ctx);
+    TResult Visit(Parameter node, TContext ctx);
+    TResult Visit(ArrayType node, TContext ctx);
+    TResult Visit(IndexedAccessType node, TContext ctx);
 }

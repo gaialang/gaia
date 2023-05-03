@@ -36,6 +36,7 @@ public static class SyntaxKindText {
         {">=", SyntaxKind.GreaterThanEqualsToken},
         {"==", SyntaxKind.EqualsEqualsToken},
         {"!=", SyntaxKind.ExclamationEqualsToken},
+        {"+", SyntaxKind.PlusToken},
         {"-", SyntaxKind.MinusToken},
         {"*", SyntaxKind.AsteriskToken},
         {"/", SyntaxKind.SlashToken},
@@ -58,5 +59,5 @@ public static class SyntaxKindText {
 
     public static Dictionary<SyntaxKind, string> MakeReverseMap(Dictionary<string, SyntaxKind> map) => map.ToDictionary(x => x.Value, x => x.Key);
 
-    public static readonly Dictionary<SyntaxKind, string> TokenStrings = MakeReverseMap(TextToToken);
+    public static readonly Dictionary<SyntaxKind, string> TokenToText = MakeReverseMap(TextToToken);
 }

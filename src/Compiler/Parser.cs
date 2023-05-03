@@ -9,36 +9,38 @@ public sealed class Parser {
     private SyntaxKind currentToken;
     private Env? top = null;
 
-    private readonly Dictionary<string, int> binaryOperatorPrecedence = new() {
-        { "*", 13 },
-        { "/", 13 },
-        { "%", 13 },
+    private readonly Dictionary<SyntaxKind, int> binaryOperatorPrecedence = new() {
+        { SyntaxKind.AsteriskToken, 13 },
+        {SyntaxKind.SlashToken, 13 },
+        { SyntaxKind.PercentToken, 13 },
 
-        { "+", 12 },
-        { "-", 12 },
+        { SyntaxKind.PlusToken, 12 },
+        { SyntaxKind.MinusToken, 12 },
 
-        { "<", 10 },
-        { "<=", 10 },
-        { ">", 10 },
-        { ">=", 10 },
+        { SyntaxKind.LessThanToken, 10 },
+        { SyntaxKind.LessThanEqualsToken, 10 },
+        { SyntaxKind.GreaterThanToken, 10 },
+        { SyntaxKind.GreaterThanEqualsToken, 10 },
 
-        { "==", 9 },
-        { "!=", 9 },
+        { SyntaxKind.EqualsEqualsToken, 9 },
+        { SyntaxKind.ExclamationEqualsToken, 9 },
 
-        { "&", 8 },
+        { SyntaxKind.AmpersandToken, 8 },
 
-        { "|", 6 },
+        { SyntaxKind.BarToken, 6 },
 
-        { "&&", 5 },
+        { SyntaxKind.AmpersandAmpersandToken, 5 },
 
-        { "||", 4 },
+        { SyntaxKind.BarBarToken, 4 },
     };
 
-    private readonly HashSet<string> unaryOperators = new HashSet<string>() { "-", "!" };
+    private readonly HashSet<SyntaxKind> unaryOperators = new() {
+        SyntaxKind.ExclamationToken, SyntaxKind.MinusToken
+      };
 
     public Parser(Scanner scanner) {
         this.scanner = scanner;
-        currentToken = scanner.Scan();
+        currentToken = this.scanner.Scan();
     }
 
     public Node Parse() {
@@ -122,7 +124,8 @@ public sealed class Parser {
 
     public Statement ParsePackage() {
         if (Token() != SyntaxKind.PackageKeyword) {
-            Error($"expected package, but got {currentToken}");
+            var s = Token();
+            Error($"expected package, but got {s}");
         }
 
         var savedEnv = top;
@@ -130,7 +133,6 @@ public sealed class Parser {
 
         // Match package statement.
         ParseExpected(SyntaxKind.PackageKeyword);
-        var tok = Token();
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         var id = new Identifier(tokenValue);
@@ -172,12 +174,10 @@ public sealed class Parser {
         return list;
     }
 
-    // TODO:
     public Statement ParseStruct() {
         ParseExpected(SyntaxKind.StructKeyword);
-        var tok = currentToken;
-        ParseExpected(SyntaxKind.Identifier);
         var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
         var id = new Identifier(tokenValue);
         top?.Add(tokenValue, id);
 
@@ -191,13 +191,14 @@ public sealed class Parser {
     private List<PropertySignature> PropertyList() {
         var list = new List<PropertySignature>();
         while (Token() == SyntaxKind.Identifier) {
-            var tok = currentToken;
             var tokenValue = GetTokenValue();
             ParseExpected(SyntaxKind.Identifier);
             var id = new Identifier(tokenValue);
-            top?.Add(tokenValue, id);
-            // TODO:
-            // list.Add(id);
+            ParseExpected(SyntaxKind.ColonToken);
+            var typ = GetTypeInfo();
+            ParseSemicolon();
+            var prop = new PropertySignature(id, typ);
+            list.Add(prop);
         }
         return list;
     }
@@ -206,7 +207,6 @@ public sealed class Parser {
         var list = new List<Statement>();
         while (Token() == SyntaxKind.ImportKeyword) {
             NextToken();
-            var tok = currentToken;
             var tokenValue = GetTokenValue();
             ParseExpected(SyntaxKind.StringLiteral);
             ParseSemicolon();
@@ -218,14 +218,13 @@ public sealed class Parser {
 
     public Statement ParseVar() {
         ParseExpected(SyntaxKind.VarKeyword);
-        var tok = currentToken;
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         ParseExpected(SyntaxKind.ColonToken);
         var typ = GetTypeInfo();
 
         Expression? s = null;
-        if (Token() != SyntaxKind.EqualsToken) {
+        if (Token() is not SyntaxKind.EqualsToken) {
             ParseSemicolon();
         } else {
             ParseExpected(SyntaxKind.EqualsToken);
@@ -246,7 +245,7 @@ public sealed class Parser {
         switch (token) {
         case SyntaxKind.IntKeyword:
         case SyntaxKind.StringKeyword:
-            typ = new BaseTokenNode(token, pos, GetTokenEnd());
+            typ = new KeywordLikeNode(token, pos, GetTokenEnd());
             NextToken();
             break;
         default:
@@ -264,20 +263,20 @@ public sealed class Parser {
     /// <summary>
     /// Array types.
     /// </summary>
-    /// <param name="p"></param>
+    /// <param name="typ"></param>
     /// <returns></returns>
-    private Expression ParseArray(Expression p) {
+    private Expression ParseArray(Expression typ) {
         ParseExpected(SyntaxKind.OpenBracketToken);
-        var tok = currentToken;
+        var token = Token();
         var tokenValue = GetTokenValue();
-        switch (tok) {
+        switch (token) {
         case SyntaxKind.IntLiteral:
             NextToken();
             ParseExpected(SyntaxKind.CloseBracketToken);
-            return ParseIndexedAccess(p, tokenValue);
+            return ParseIndexedAccess(typ, tokenValue);
         case SyntaxKind.CloseBracketToken:
             NextToken();
-            return ParseArrayType(p);
+            return ParseArrayType(typ);
         default:
             Error("array type error");
             return null;
@@ -307,19 +306,18 @@ public sealed class Parser {
     }
 
     private Expression ParseUnaryExpression() {
-        var tokenValue = GetTokenValue();
-        if (unaryOperators.Contains(tokenValue)) {
+        var token = Token();
+        if (unaryOperators.Contains(token)) {
             NextToken();
-            var op = Token();
             var operand = ParseUnaryExpression();
-            return new UnaryExpression(op, operand);
+            return new UnaryExpression(token, operand);
         } else {
             return ParsePrimaryExpression();
         }
     }
 
     private int GetPrecedence(SyntaxKind token) {
-        if (binaryOperatorPrecedence.TryGetValue(TokenStrings[token], out var p)) {
+        if (binaryOperatorPrecedence.TryGetValue(token, out var p)) {
             return p;
         }
 
@@ -345,15 +343,16 @@ public sealed class Parser {
         case SyntaxKind.IntLiteral:
         case SyntaxKind.FloatLiteral:
         case SyntaxKind.StringLiteral:
+        case SyntaxKind.CharacterLiteral:
         case SyntaxKind.TrueKeyword:
         case SyntaxKind.FalseKeyword:
-            x = new LiteralLikeNode(token, pos, GetTokenEnd(), tokenValue);
+            x = new LiteralLikeNode(token, tokenValue, pos, GetTokenEnd());
             NextToken();
             return x;
         case SyntaxKind.Identifier:
             return ParseAccessOrCall(tokenValue);
         case SyntaxKind.OpenBracketToken:
-            return ParseArrayLiteral(pos);
+            return ParseArrayLiteral();
         default:
             Error("Primary has a bug");
             // unreachable
@@ -361,7 +360,8 @@ public sealed class Parser {
         }
     }
 
-    public Expression ParseArrayLiteral(int pos) {
+    public Expression ParseArrayLiteral() {
+        var pos = GetNodePos();
         ParseExpected(SyntaxKind.OpenBracketToken);
         var list = new List<Expression>();
         var first = ParseUnaryExpression();
@@ -372,7 +372,7 @@ public sealed class Parser {
             list.Add(elem);
         }
         ParseExpected(SyntaxKind.CloseBracketToken);
-        return new ArrayLiteralExpression(list, pos);
+        return new ArrayLiteralExpression(list, pos, GetTokenEnd());
     }
 
     private Expression ParseAccessOrCall(string tokenValue) {
@@ -442,8 +442,8 @@ public sealed class Parser {
 
         ParseExpected(SyntaxKind.Identifier);
 
-        var funcId = new Identifier(tokenValue);
-        top?.Add(funcId.Name, funcId);
+        var funcName = new Identifier(tokenValue);
+        top?.Add(funcName.Name, funcName);
 
         ParseExpected(SyntaxKind.OpenParenToken);
         var args = ParameterList();
@@ -451,49 +451,50 @@ public sealed class Parser {
 
         var returnType = ReturnType();
         var b = ParseBlock();
-        return new FunctionDeclaration(funcId, args, returnType, b);
+        return new FunctionDeclaration(funcName, args, returnType, b);
     }
 
     // Formal parameters
-    private List<Identifier> ParameterList() {
-        var args = new List<Identifier>();
+    private List<Parameter> ParameterList() {
+        var args = new List<Parameter>();
         if (Token() == SyntaxKind.CloseParenToken) {
             return args;
         }
 
-        var tokenValue = GetTokenValue();
-        ParseExpected(SyntaxKind.Identifier);
-        ParseExpected(SyntaxKind.ColonToken);
-        var p = GetTypeInfo();
-        var id = new Identifier(tokenValue);
-        top?.Add(id.Name, id);
-        args.Add(id);
-
+        ParseOneParameter(args);
         ParameterRest(args);
         return args;
     }
 
-    private void ParameterRest(List<Identifier> args) {
+    private void ParameterRest(List<Parameter> args) {
         if (Token() != SyntaxKind.CommaToken) {
             return;
         }
 
         ParseExpected(SyntaxKind.CommaToken);
-        var tokenValue = GetTokenValue();
-        ParseExpected(SyntaxKind.Identifier);
-        ParseExpected(SyntaxKind.ColonToken);
-        var p = GetTypeInfo();
-        var id = new Identifier(tokenValue);
-        top?.Add(id.Name, id);
-        args.Add(id);
+
+        ParseOneParameter(args);
 
         // Find the rest parameters.
         ParameterRest(args);
     }
 
+    private void ParseOneParameter(List<Parameter> args) {
+        var tokenValue = GetTokenValue();
+        var pos = GetNodePos();
+        ParseExpected(SyntaxKind.Identifier);
+        ParseExpected(SyntaxKind.ColonToken);
+        var typ = GetTypeInfo();
+        var id = new Identifier(tokenValue);
+        // TODO: handle func scope
+        // top?.Add(id.Name, id);
+        var para = new Parameter(id, typ, pos, GetTokenEnd());
+        args.Add(para);
+    }
+
     private Expression ReturnType() {
         if (Token() != SyntaxKind.MinusGreaterThanToken) {
-            return new LiteralLikeNode(SyntaxKind.VoidKeyword, GetNodePos(), GetTokenEnd(), "void");
+            return new KeywordLikeNode(SyntaxKind.VoidKeyword, GetNodePos(), GetTokenEnd());
         }
 
         ParseExpected(SyntaxKind.MinusGreaterThanToken);
