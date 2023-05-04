@@ -72,9 +72,12 @@ public enum SyntaxKind {
     PackageKeyword,
     VoidKeyword,
     NullKeyword,
+    EnumKeyword,
+    InterfaceKeyword,
 
     // TypeMember
     PropertySignature,
+    MethodSignature,
 
     // Type
     ArrayType,
@@ -101,6 +104,8 @@ public enum SyntaxKind {
     ElementAssignStatement,
     ExpressionStatement,
     StructDeclaration,
+    InterfaceDeclaration,
+    EnumDeclaration,
 
     // Top-level nodes
     SourceFile,

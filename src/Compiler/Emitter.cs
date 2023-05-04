@@ -15,6 +15,14 @@ public class Emitter : Visitor<string, object?> {
         this.writer = writer;
     }
 
+    private string Indent() {
+        var sb = new StringBuilder();
+        for (var i = 0; i < indent; i++) {
+            sb.Append("    ");
+        }
+        return sb.ToString();
+    }
+
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
         // include headers.
         writer.WriteLine("#include <stdio.h>");
@@ -23,7 +31,11 @@ public class Emitter : Visitor<string, object?> {
         writer.WriteLine("#include <stdbool.h>");
 
         // TODO: optimize indentations.
-        var kinds = new HashSet<SyntaxKind>() { SyntaxKind.FunctionDeclaration, SyntaxKind.VariableDeclaration, SyntaxKind.StructKeyword };
+        var kinds = new HashSet<SyntaxKind>() {
+            SyntaxKind.FunctionDeclaration, SyntaxKind.VariableDeclaration,
+            SyntaxKind.StructDeclaration, SyntaxKind.EnumDeclaration,
+            SyntaxKind.InterfaceDeclaration,
+            };
         foreach (var stmt in pkg.Statements) {
             if (kinds.Contains(stmt.Kind)) {
                 writer.WriteLine();
@@ -118,19 +130,20 @@ public class Emitter : Visitor<string, object?> {
         return $"{lhs} {op} {rhs}";
     }
 
-    public string Visit(FunctionDeclaration fn, object? ctx = null) {
+    public string Visit(FunctionDeclaration node, object? ctx = null) {
         var list = new List<string>();
-        foreach (var item in fn.Parameters) {
-            var para = item.Accept(this, ctx);
-            list.Add(para);
+        foreach (var item in node.Parameters) {
+            var paramName = item.Name.Accept(this, ctx);
+            var paramTypeName = CType(item.Type);
+            list.Add($"{paramTypeName.Prefix} {paramName}{paramTypeName.Suffix}");
         }
-        var args = string.Join(", ", list);
+        var paramsText = string.Join(", ", list);
 
-        var returnTypeName = CType(fn.Type);
-        var name = fn.Name.Accept(this, ctx);
-        writer.WriteLine($"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({args}) {{");
+        var returnTypeName = CType(node.Type);
+        var name = node.Name.Accept(this, ctx);
+        writer.WriteLine($"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({paramsText}) {{");
         indent++;
-        fn.Body?.Accept(this, ctx);
+        node.Body?.Accept(this, ctx);
         writer.WriteLine("}");
         indent--;
         return "";
@@ -138,8 +151,8 @@ public class Emitter : Visitor<string, object?> {
 
     public string Visit(Parameter node, object? ctx = null) {
         var name = node.Name.Accept(this, ctx);
-        var typeName = CType(node.Type);
-        return $"{typeName.Prefix} {name}{typeName.Suffix}";
+        var typ = node.Type.Accept(this, ctx);
+        return $"{name}: {typ}";
     }
 
     public string Visit(WhileStatement node, object? ctx = null) {
@@ -275,11 +288,13 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(ArrayType node, object? ctx = null) {
-        return "";
+        var elem = node.ElementType.Accept(this, ctx);
+        return $"{elem}[]";
     }
 
     public string Visit(IndexedAccessType node, object? ctx = null) {
-        return "";
+        var objType = node.ObjectType.Accept(this, ctx);
+        return $"{objType}[{node.IndexType}]";
     }
 
     public string Visit(StructDeclaration node, object? ctx = null) {
@@ -304,11 +319,34 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    private string Indent() {
-        var sb = new StringBuilder();
-        for (var i = 0; i < indent; i++) {
-            sb.Append("    ");
+    public string Visit(InterfaceDeclaration node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        writer.WriteLine($"// interface {name} {{");
+        indent++;
+
+        foreach (var item in node.Members) {
+            writer.Write("// ");
+            writer.Write(Indent());
+            item.Accept(this, ctx);
         }
-        return sb.ToString();
+
+        writer.WriteLine($"// }}");
+        indent--;
+        return "";
+    }
+
+    public string Visit(MethodSignature node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+
+        var list = new List<string>();
+        foreach (var item in node.Parameters) {
+            var parameter = item.Accept(this, ctx);
+            list.Add(parameter);
+        }
+        var paramsText = string.Join(", ", list);
+
+        var returnType = node.Type.Accept(this, ctx);
+        writer.WriteLine($"{name}({paramsText}) -> {returnType}");
+        return "";
     }
 }

@@ -27,4 +27,6 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(Parameter node, TContext ctx);
     TResult Visit(ArrayType node, TContext ctx);
     TResult Visit(IndexedAccessType node, TContext ctx);
+    TResult Visit(InterfaceDeclaration node, TContext ctx);
+    TResult Visit(MethodSignature node, TContext ctx);
 }

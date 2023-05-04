@@ -1,6 +1,5 @@
 using Gaia.AST;
 using Gaia.Domain;
-using static Gaia.Domain.SyntaxKindText;
 
 namespace Gaia.Compiler;
 
@@ -147,7 +146,6 @@ public sealed class Parser {
 
     public List<Statement> TopLevelStatements() {
         var list = new List<Statement>();
-
         // import statements must come first.
         var imports = ImportDeclarations();
         list.AddRange(imports);
@@ -159,12 +157,16 @@ public sealed class Parser {
                 list.Add(varStmt);
                 break;
             case SyntaxKind.FuncKeyword:
-                var funcStmt = ParseFuncStatement();
+                var funcStmt = ParseFunctionDeclaration();
                 list.Add(funcStmt);
                 break;
             case SyntaxKind.StructKeyword:
                 var structStmt = ParseStruct();
                 list.Add(structStmt);
+                break;
+            case SyntaxKind.InterfaceKeyword:
+                var interfaceStmt = ParseInterfaceDeclaration();
+                list.Add(interfaceStmt);
                 break;
             default:
                 break;
@@ -173,6 +175,20 @@ public sealed class Parser {
 
         return list;
     }
+
+    public List<Statement> ImportDeclarations() {
+        var list = new List<Statement>();
+        while (Token() == SyntaxKind.ImportKeyword) {
+            NextToken();
+            var tokenValue = GetTokenValue();
+            ParseExpected(SyntaxKind.StringLiteral);
+            ParseSemicolon();
+            var i = new ImportDeclaration(tokenValue);
+            list.Add(i);
+        }
+        return list;
+    }
+
 
     public Statement ParseStruct() {
         ParseExpected(SyntaxKind.StructKeyword);
@@ -195,7 +211,7 @@ public sealed class Parser {
             ParseExpected(SyntaxKind.Identifier);
             var id = new Identifier(tokenValue);
             ParseExpected(SyntaxKind.ColonToken);
-            var typ = GetTypeInfo();
+            var typ = ParseType();
             ParseSemicolon();
             var prop = new PropertySignature(id, typ);
             list.Add(prop);
@@ -203,15 +219,34 @@ public sealed class Parser {
         return list;
     }
 
-    public List<Statement> ImportDeclarations() {
-        var list = new List<Statement>();
-        while (Token() == SyntaxKind.ImportKeyword) {
-            NextToken();
+    public Statement ParseInterfaceDeclaration() {
+        ParseExpected(SyntaxKind.InterfaceKeyword);
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        var id = new Identifier(tokenValue);
+        top?.Add(tokenValue, id);
+
+        ParseExpected(SyntaxKind.OpenBraceToken);
+        var methods = MethodList();
+        ParseExpected(SyntaxKind.CloseBraceToken);
+
+        return new InterfaceDeclaration(id, methods);
+    }
+
+    private List<MethodSignature> MethodList() {
+        var list = new List<MethodSignature>();
+        while (Token() == SyntaxKind.Identifier) {
             var tokenValue = GetTokenValue();
-            ParseExpected(SyntaxKind.StringLiteral);
+            ParseExpected(SyntaxKind.Identifier);
+            var methodName = new Identifier(tokenValue);
+
+            ParseExpected(SyntaxKind.OpenParenToken);
+            var parameters = ParameterList();
+            ParseExpected(SyntaxKind.CloseParenToken);
+            var returnType = ParseReturnType();
             ParseSemicolon();
-            var i = new ImportDeclaration(tokenValue);
-            list.Add(i);
+            var method = new MethodSignature(methodName, parameters, returnType);
+            list.Add(method);
         }
         return list;
     }
@@ -221,7 +256,7 @@ public sealed class Parser {
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         ParseExpected(SyntaxKind.ColonToken);
-        var typ = GetTypeInfo();
+        var typ = ParseType();
 
         Expression? s = null;
         if (Token() is not SyntaxKind.EqualsToken) {
@@ -238,14 +273,15 @@ public sealed class Parser {
     }
 
     // Get a type for the variable.
-    private Expression GetTypeInfo() {
+    private Expression ParseType() {
         Expression typ;
-        var token = Token();
         var pos = GetNodePos();
+        var token = Token();
         switch (token) {
         case SyntaxKind.IntKeyword:
         case SyntaxKind.CharKeyword:
         case SyntaxKind.StringKeyword:
+        case SyntaxKind.VoidKeyword:
             typ = new KeywordLikeNode(token, pos, GetTokenEnd());
             NextToken();
             break;
@@ -433,58 +469,56 @@ public sealed class Parser {
         return call;
     }
 
-    public FunctionDeclaration ParseFuncStatement() {
+    public FunctionDeclaration ParseFunctionDeclaration() {
         var savedEnv = top;
         top = new Env(top);
 
         ParseExpected(SyntaxKind.FuncKeyword);
         var tokenValue = GetTokenValue();
-
         ParseExpected(SyntaxKind.Identifier);
-
         var funcName = new Identifier(tokenValue);
         top?.Add(funcName.Name, funcName);
 
         ParseExpected(SyntaxKind.OpenParenToken);
-        var args = ParameterList();
+        var parameters = ParameterList();
         ParseExpected(SyntaxKind.CloseParenToken);
 
-        var returnType = ReturnType();
+        var returnType = ParseReturnType();
         var b = ParseBlock();
-        return new FunctionDeclaration(funcName, args, returnType, b);
+        return new FunctionDeclaration(funcName, parameters, returnType, b);
     }
 
     // Formal parameters
     private List<Parameter> ParameterList() {
-        var args = new List<Parameter>();
+        var parameters = new List<Parameter>();
         if (Token() == SyntaxKind.CloseParenToken) {
-            return args;
+            return parameters;
         }
 
-        ParseOneParameter(args);
-        ParameterRest(args);
-        return args;
+        ParseParameter(parameters);
+        ParameterRest(parameters);
+        return parameters;
     }
 
-    private void ParameterRest(List<Parameter> args) {
+    private void ParameterRest(List<Parameter> parameters) {
         if (Token() != SyntaxKind.CommaToken) {
             return;
         }
 
         ParseExpected(SyntaxKind.CommaToken);
 
-        ParseOneParameter(args);
+        ParseParameter(parameters);
 
         // Find the rest parameters.
-        ParameterRest(args);
+        ParameterRest(parameters);
     }
 
-    private void ParseOneParameter(List<Parameter> args) {
-        var tokenValue = GetTokenValue();
+    private void ParseParameter(List<Parameter> args) {
         var pos = GetNodePos();
+        var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         ParseExpected(SyntaxKind.ColonToken);
-        var typ = GetTypeInfo();
+        var typ = ParseType();
         var id = new Identifier(tokenValue);
         // TODO: handle func scope
         // top?.Add(id.Name, id);
@@ -492,14 +526,14 @@ public sealed class Parser {
         args.Add(para);
     }
 
-    private Expression ReturnType() {
+    private Expression ParseReturnType() {
         if (Token() != SyntaxKind.MinusGreaterThanToken) {
             return new KeywordLikeNode(SyntaxKind.VoidKeyword, GetNodePos(), GetTokenEnd());
         }
 
         ParseExpected(SyntaxKind.MinusGreaterThanToken);
-        var p = GetTypeInfo();
-        return p;
+        var typ = ParseType();
+        return typ;
     }
 
     public Block ParseBlock() {

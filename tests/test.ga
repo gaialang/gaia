@@ -5,6 +5,11 @@ struct Book {
     years: int[]
 }
 
+interface Student {
+    read() -> void
+    write(a: string[][]) -> string
+}
+
 var a: int = 0
 
 func main() -> int {

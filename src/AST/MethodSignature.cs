@@ -1,25 +1,22 @@
-﻿using Gaia.Domain;
+using Gaia.Domain;
 
 namespace Gaia.AST;
 
-public sealed class FunctionDeclaration : Statement {
-    public FunctionDeclaration(Identifier name, List<Parameter> parameters, Expression typ, Block body) {
+public sealed class MethodSignature : Statement {
+    public MethodSignature(Identifier name, List<Parameter> parameters, Expression typ) {
         Name = name;
         Parameters = parameters;
         Type = typ;
-        Body = body;
-        Kind = SyntaxKind.FunctionDeclaration;
+        Kind = SyntaxKind.MethodSignature;
     }
 
     public Identifier Name { get; }
     public List<Parameter> Parameters { get; }
 
     /// <summary>
-    /// Return type of the function.
+    /// Return type.
     /// </summary>
     public Expression Type { get; }
-
-    public Block Body { get; private set; }
 
     public SyntaxKind Kind { get; }
 

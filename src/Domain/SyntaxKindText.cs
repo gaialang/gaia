@@ -19,6 +19,9 @@ public static class SyntaxKindText {
         {"char", SyntaxKind.CharKeyword},
         {"string", SyntaxKind.StringKeyword},
         {"struct", SyntaxKind.StructKeyword},
+        {"enum", SyntaxKind.EnumKeyword},
+        {"interface", SyntaxKind.InterfaceKeyword},
+        {"void", SyntaxKind.VoidKeyword},
     };
 
     public static readonly Dictionary<string, SyntaxKind> TextToToken = TextToKeyword.Union(new Dictionary<string, SyntaxKind>() {
