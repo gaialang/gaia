@@ -16,6 +16,7 @@ public static class SyntaxKindText {
         {"do", SyntaxKind.DoKeyword},
         {"for", SyntaxKind.ForKeyword},
         {"break", SyntaxKind.BreakKeyword},
+        {"char", SyntaxKind.CharKeyword},
         {"string", SyntaxKind.StringKeyword},
         {"struct", SyntaxKind.StructKeyword},
     };

@@ -2,6 +2,7 @@ package main
 
 struct Book {
     title: string
+    years: int[]
 }
 
 var a: int = 0

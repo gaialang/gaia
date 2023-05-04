@@ -54,6 +54,7 @@ public enum SyntaxKind {
 
     // Keywords
     IntKeyword,
+    CharKeyword,
     StringKeyword,
     TrueKeyword,
     FalseKeyword,

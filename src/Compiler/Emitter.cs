@@ -18,6 +18,8 @@ public class Emitter : Visitor<string, object?> {
     public string Visit(PackageDeclaration pkg, object? ctx = null) {
         // include headers.
         writer.WriteLine("#include <stdio.h>");
+        writer.WriteLine("#include <stdlib.h>");
+        writer.WriteLine("#include <string.h>");
         writer.WriteLine("#include <stdbool.h>");
 
         // TODO: optimize indentations.
@@ -281,10 +283,24 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(StructDeclaration node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        writer.WriteLine($"typedef struct {name}_type {{");
+        indent++;
+
+        foreach (var item in node.Members) {
+            writer.Write(Indent());
+            item.Accept(this, ctx);
+        }
+
+        writer.WriteLine($"}} {name};");
+        indent--;
         return "";
     }
 
     public string Visit(PropertySignature node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        var typeName = CType(node.Type);
+        writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix};");
         return "";
     }
 

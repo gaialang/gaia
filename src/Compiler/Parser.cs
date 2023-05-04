@@ -244,13 +244,14 @@ public sealed class Parser {
         var pos = GetNodePos();
         switch (token) {
         case SyntaxKind.IntKeyword:
+        case SyntaxKind.CharKeyword:
         case SyntaxKind.StringKeyword:
             typ = new KeywordLikeNode(token, pos, GetTokenEnd());
             NextToken();
             break;
         default:
             Error("no valid type");
-            throw new Exception();
+            return null;
         }
 
         if (Token() != SyntaxKind.OpenBracketToken) {
@@ -355,7 +356,6 @@ public sealed class Parser {
             return ParseArrayLiteral();
         default:
             Error("Primary has a bug");
-            // unreachable
             return null;
         }
     }
