@@ -134,14 +134,14 @@ public sealed class Parser {
         ParseExpected(SyntaxKind.PackageKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
-        var id = new Identifier(tokenValue);
-        top?.Add(tokenValue, id);
+        var pkgId = new Identifier(tokenValue);
+        top?.Add(tokenValue, pkgId);
         ParseSemicolon();
 
         var list = TopLevelStatements();
-        var p = new PackageDeclaration(id.Name, list);
+        var pkg = new PackageDeclaration(pkgId.Text, list);
         top = savedEnv;
-        return p;
+        return pkg;
     }
 
     public List<Statement> TopLevelStatements() {
@@ -476,16 +476,16 @@ public sealed class Parser {
         ParseExpected(SyntaxKind.FuncKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
-        var funcName = new Identifier(tokenValue);
-        top?.Add(funcName.Name, funcName);
+        var funcId = new Identifier(tokenValue);
+        top?.Add(tokenValue, funcId);
 
         ParseExpected(SyntaxKind.OpenParenToken);
         var parameters = ParameterList();
         ParseExpected(SyntaxKind.CloseParenToken);
 
         var returnType = ParseReturnType();
-        var b = ParseBlock();
-        return new FunctionDeclaration(funcName, parameters, returnType, b);
+        var body = ParseBlock();
+        return new FunctionDeclaration(funcId, parameters, returnType, body);
     }
 
     // Formal parameters

@@ -51,7 +51,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(Identifier id, object? ctx = null) {
-        return id.Name;
+        return id.Text;
     }
 
     public string Visit(VariableDeclaration node, object? ctx = null) {

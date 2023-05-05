@@ -3,15 +3,12 @@ using Gaia.Domain;
 namespace Gaia.AST;
 
 public sealed class Identifier : Expression {
-    public Identifier(string name) {
-        Name = name;
+    public Identifier(string text) {
+        Text = text;
         Kind = SyntaxKind.Identifier;
     }
 
-    /// <summary>
-    /// Maybe escapedText?
-    /// </summary>
-    public string Name { get; }
+    public string Text { get; }
 
     public SyntaxKind Kind { get; }
 
