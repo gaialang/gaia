@@ -350,4 +350,30 @@ public class Emitter : Visitor<string, object?> {
         writer.WriteLine($"{name}({paramsText}) -> {returnType}");
         return "";
     }
+
+    public string Visit(EnumDeclaration node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        writer.WriteLine($"typedef enum {name} {{");
+        indent++;
+
+        foreach (var item in node.Members) {
+            writer.Write(Indent());
+            item.Accept(this, ctx);
+        }
+
+        writer.WriteLine($"}} {name};");
+        indent--;
+        return "";
+    }
+
+    public string Visit(EnumMember node, object? ctx = null) {
+        var name = node.Name.Accept(this, ctx);
+        if (node.Initializer is null) {
+            writer.WriteLine($"{name},");
+        } else {
+            var val = node.Initializer.Accept(this, ctx);
+            writer.WriteLine($"{name} = {val},");
+        }
+        return "";
+    }
 }

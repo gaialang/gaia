@@ -153,20 +153,24 @@ public sealed class Parser {
         while (Token() != SyntaxKind.EndOfFileToken) {
             switch (Token()) {
             case SyntaxKind.VarKeyword:
-                var varStmt = ParseVar();
-                list.Add(varStmt);
+                var varDecl = ParseVariableDeclaration();
+                list.Add(varDecl);
                 break;
             case SyntaxKind.FuncKeyword:
-                var funcStmt = ParseFunctionDeclaration();
-                list.Add(funcStmt);
+                var funcDecl = ParseFunctionDeclaration();
+                list.Add(funcDecl);
                 break;
             case SyntaxKind.StructKeyword:
-                var structStmt = ParseStruct();
-                list.Add(structStmt);
+                var structDecl = ParseStructDeclaration();
+                list.Add(structDecl);
                 break;
             case SyntaxKind.InterfaceKeyword:
-                var interfaceStmt = ParseInterfaceDeclaration();
-                list.Add(interfaceStmt);
+                var interfaceDecl = ParseInterfaceDeclaration();
+                list.Add(interfaceDecl);
+                break;
+            case SyntaxKind.EnumKeyword:
+                var enumDecl = ParseEnumDeclaration();
+                list.Add(enumDecl);
                 break;
             default:
                 break;
@@ -190,7 +194,7 @@ public sealed class Parser {
     }
 
 
-    public Statement ParseStruct() {
+    public Statement ParseStructDeclaration() {
         ParseExpected(SyntaxKind.StructKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
@@ -251,7 +255,7 @@ public sealed class Parser {
         return list;
     }
 
-    public Statement ParseVar() {
+    public Statement ParseVariableDeclaration() {
         ParseExpected(SyntaxKind.VarKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
@@ -402,13 +406,55 @@ public sealed class Parser {
         var list = new List<Expression>();
         var first = ParseUnaryExpression();
         list.Add(first);
-        while (Token() == SyntaxKind.CommaToken) {
+
+        while (Token() is SyntaxKind.CommaToken) {
             ParseExpected(SyntaxKind.CommaToken);
+            if (Token() is SyntaxKind.CloseBracketToken) {
+                break;
+            }
             var elem = ParseUnaryExpression();
             list.Add(elem);
         }
         ParseExpected(SyntaxKind.CloseBracketToken);
+
         return new ArrayLiteralExpression(list, pos, GetTokenEnd());
+    }
+
+    public Statement ParseEnumDeclaration() {
+        var pos = GetNodePos();
+        ParseExpected(SyntaxKind.EnumKeyword);
+        var tokenValue = GetTokenValue();
+        ParseExpected(SyntaxKind.Identifier);
+        var id = new Identifier(tokenValue);
+
+        ParseExpected(SyntaxKind.OpenBraceToken);
+        var members = EnumMemberList();
+        ParseExpected(SyntaxKind.CloseBraceToken);
+
+        return new EnumDeclaration(id, members);
+    }
+
+    private List<EnumMember> EnumMemberList() {
+        var list = new List<EnumMember>();
+
+        while (Token() == SyntaxKind.Identifier) {
+            var tokenValue = GetTokenValue();
+            ParseExpected(SyntaxKind.Identifier);
+            var id = new Identifier(tokenValue);
+
+            Expression? expr = null;
+            if (Token() is SyntaxKind.CommaToken) {
+                ParseExpected(SyntaxKind.CommaToken);
+            } else if (Token() is SyntaxKind.EqualsToken) {
+                ParseExpected(SyntaxKind.EqualsToken);
+                expr = ParseUnaryExpression();
+                ParseExpected(SyntaxKind.CommaToken);
+            }
+
+            var member = new EnumMember(id, expr);
+            list.Add(member);
+        }
+        return list;
     }
 
     private Expression ParseAccessOrCall(string tokenValue) {
@@ -584,7 +630,7 @@ public sealed class Parser {
             NextToken();
             return null;
         case SyntaxKind.VarKeyword:
-            return ParseVar();
+            return ParseVariableDeclaration();
         case SyntaxKind.WhileKeyword:
             NextToken();
             var whileExpr = ParseExpression();

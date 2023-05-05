@@ -29,4 +29,6 @@ public interface Visitor<TResult, TContext> {
     TResult Visit(IndexedAccessType node, TContext ctx);
     TResult Visit(InterfaceDeclaration node, TContext ctx);
     TResult Visit(MethodSignature node, TContext ctx);
+    TResult Visit(EnumDeclaration node, TContext ctx);
+    TResult Visit(EnumMember node, TContext ctx);
 }

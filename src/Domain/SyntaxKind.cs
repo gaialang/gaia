@@ -78,6 +78,7 @@ public enum SyntaxKind {
     // TypeMember
     PropertySignature,
     MethodSignature,
+    EnumMember,
 
     // Type
     ArrayType,
