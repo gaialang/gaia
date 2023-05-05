@@ -131,6 +131,7 @@ public class Emitter : Visitor<string, object?> {
     }
 
     public string Visit(FunctionDeclaration node, object? ctx = null) {
+        // TODO: function prototype
         var list = new List<string>();
         foreach (var item in node.Parameters) {
             var paramName = item.Name.Accept(this, ctx);
@@ -299,7 +300,7 @@ public class Emitter : Visitor<string, object?> {
 
     public string Visit(StructDeclaration node, object? ctx = null) {
         var name = node.Name.Accept(this, ctx);
-        writer.WriteLine($"typedef struct {name}_type {{");
+        writer.WriteLine($"typedef struct {name} {{");
         indent++;
 
         foreach (var item in node.Members) {
