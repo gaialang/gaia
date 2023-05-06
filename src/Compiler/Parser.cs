@@ -6,7 +6,6 @@ namespace Gaia.Compiler;
 public sealed class Parser {
     private readonly Scanner scanner;
     private SyntaxKind currentToken;
-    private Env? top = null;
 
     private readonly Dictionary<SyntaxKind, int> binaryOperatorPrecedence = new() {
         { SyntaxKind.AsteriskToken, 13 },
@@ -127,24 +126,19 @@ public sealed class Parser {
             Error($"expected package, but got {s}");
         }
 
-        var savedEnv = top;
-        top = new Env(top);
-
         // Match package statement.
         ParseExpected(SyntaxKind.PackageKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         var pkgId = new Identifier(tokenValue);
-        top?.Add(tokenValue, pkgId);
         ParseSemicolon();
 
-        var list = TopLevelStatements();
-        var pkg = new PackageDeclaration(pkgId.Text, list);
-        top = savedEnv;
+        var list = ToplevelStatements();
+        var pkg = new PackageDeclaration(pkgId, list);
         return pkg;
     }
 
-    public List<Statement> TopLevelStatements() {
+    public List<Statement> ToplevelStatements() {
         var list = new List<Statement>();
         // import statements must come first.
         var imports = ImportDeclarations();
@@ -199,7 +193,6 @@ public sealed class Parser {
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         var id = new Identifier(tokenValue);
-        top?.Add(tokenValue, id);
 
         ParseExpected(SyntaxKind.OpenBraceToken);
         var props = PropertyList();
@@ -228,7 +221,6 @@ public sealed class Parser {
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         var id = new Identifier(tokenValue);
-        top?.Add(tokenValue, id);
 
         ParseExpected(SyntaxKind.OpenBraceToken);
         var methods = MethodList();
@@ -271,7 +263,6 @@ public sealed class Parser {
             ParseSemicolon();
         }
         var id = new Identifier(tokenValue);
-        top?.Add(tokenValue, id);
         var VarStmt = new VariableDeclaration(id, typ, s);
         return VarStmt;
     }
@@ -458,12 +449,7 @@ public sealed class Parser {
     }
 
     private Expression ParseAccessOrCall(string tokenValue) {
-        var id = top?.Get(tokenValue);
-        if (id is null) {
-            // Error($"{look} undeclared");
-            // TODO: Handle undefined functions
-            id = new Identifier(tokenValue);
-        }
+        var id = new Identifier(tokenValue);
         NextToken();
 
         if (Token() == SyntaxKind.OpenParenToken) {
@@ -516,14 +502,10 @@ public sealed class Parser {
     }
 
     public FunctionDeclaration ParseFunctionDeclaration() {
-        var savedEnv = top;
-        top = new Env(top);
-
         ParseExpected(SyntaxKind.FuncKeyword);
         var tokenValue = GetTokenValue();
         ParseExpected(SyntaxKind.Identifier);
         var funcId = new Identifier(tokenValue);
-        top?.Add(tokenValue, funcId);
 
         ParseExpected(SyntaxKind.OpenParenToken);
         var parameters = ParameterList();
@@ -552,9 +534,7 @@ public sealed class Parser {
         }
 
         ParseExpected(SyntaxKind.CommaToken);
-
         ParseParameter(parameters);
-
         // Find the rest parameters.
         ParameterRest(parameters);
     }
@@ -584,14 +564,8 @@ public sealed class Parser {
 
     public Block ParseBlock() {
         ParseExpected(SyntaxKind.OpenBraceToken);
-
-        var savedEnv = top;
-        top = new Env(top);
-
         var statements = StatementList();
-
         ParseExpected(SyntaxKind.CloseBraceToken);
-        top = savedEnv;
         return new Block(statements);
     }
 
@@ -664,12 +638,8 @@ public sealed class Parser {
 
     private Statement? ParseAssignOrCall() {
         var tokenValue = GetTokenValue();
+        var id = new Identifier(tokenValue);
         ParseExpected(SyntaxKind.Identifier);
-        var id = top?.Get(tokenValue);
-        if (id is null) {
-            // Error($"{tok} undeclared");
-            id = new Identifier(tokenValue);
-        }
 
         if (Token() == SyntaxKind.OpenParenToken) {
             var call = ParseCall(id);
@@ -703,7 +673,7 @@ public sealed class Parser {
         if (CanParseSemicolon()) {
             return new ReturnStatement();
         } else {
-            var s = ParseUnaryExpression();
+            var s = ParseExpression();
             ParseSemicolon();
             return new ReturnStatement(s);
         }

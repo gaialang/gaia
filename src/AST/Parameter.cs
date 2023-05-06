@@ -6,7 +6,7 @@ public sealed class Parameter : Expression {
     public Parameter(Identifier name, Expression typ, int pos, int end) {
         Name = name;
         Type = typ;
-        Kind = SyntaxKind.PropertySignature;
+        Kind = SyntaxKind.Parameter;
         Pos = pos;
         End = end;
     }

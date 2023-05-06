@@ -29,17 +29,23 @@ public class Emitter : Visitor<string, object?> {
         writer.WriteLine("#include <stdlib.h>");
         writer.WriteLine("#include <string.h>");
         writer.WriteLine("#include <stdbool.h>");
+        writer.WriteLine();
+
+        // Hoist functions
+        foreach (var stmt in pkg.Statements) {
+            if (stmt is FunctionDeclaration func) {
+                var name = func.Name.Accept(this, ctx);
+                if (name == "main") {
+                    continue;
+                }
+                var proto = CFunctionPrototype(func, ctx);
+                writer.WriteLine($"{proto};");
+            }
+        }
 
         // TODO: optimize indentations.
-        var kinds = new HashSet<SyntaxKind>() {
-            SyntaxKind.FunctionDeclaration, SyntaxKind.VariableDeclaration,
-            SyntaxKind.StructDeclaration, SyntaxKind.EnumDeclaration,
-            SyntaxKind.InterfaceDeclaration,
-            };
         foreach (var stmt in pkg.Statements) {
-            if (kinds.Contains(stmt.Kind)) {
-                writer.WriteLine();
-            }
+            writer.WriteLine();
             stmt.Accept(this, ctx);
         }
         return "";
@@ -130,8 +136,7 @@ public class Emitter : Visitor<string, object?> {
         return $"{lhs} {op} {rhs}";
     }
 
-    public string Visit(FunctionDeclaration node, object? ctx = null) {
-        // TODO: function prototype
+    private string CFunctionPrototype(FunctionDeclaration node, object? ctx = null) {
         var list = new List<string>();
         foreach (var item in node.Parameters) {
             var paramName = item.Name.Accept(this, ctx);
@@ -142,7 +147,12 @@ public class Emitter : Visitor<string, object?> {
 
         var returnTypeName = CType(node.Type);
         var name = node.Name.Accept(this, ctx);
-        writer.WriteLine($"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({paramsText}) {{");
+        return $"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({paramsText})";
+    }
+
+    public string Visit(FunctionDeclaration node, object? ctx = null) {
+        var proto = CFunctionPrototype(node, ctx);
+        writer.WriteLine($"{proto} {{");
         indent++;
         node.Body?.Accept(this, ctx);
         writer.WriteLine("}");
