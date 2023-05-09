@@ -28,15 +28,20 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(Identifier id) {
-        return null;
+        var e = toplevelScope.Get(id.Text) ?? throw new CheckError($"Unknown identifier {id.Text}");
+        return e.Type;
     }
 
     public Expression? Visit(VariableDeclaration node) {
         var name = node.Name.Text;
+        if (toplevelScope.ContainsLocal(name)) {
+            throw new CheckError($"Variable {name} already declared");
+        }
+
         if (node.Initializer is not null) {
             var typ = node.Initializer.Accept(this);
             if (!Equals(node.Type, typ)) {
-                throw new CheckError($"Type mismatch {node.Type} != {typ}");
+                throw new CheckError($"Type mismatch {node.Type.Kind} != {typ!.Kind}");
             }
         }
         toplevelScope.Add(name, new VariableEntity(node.Type));
@@ -141,6 +146,7 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(FunctionDeclaration node) {
+        /*
         var list = new List<string>();
         foreach (var item in node.Parameters) {
             var paramName = item.Name.Accept(this);
@@ -152,6 +158,7 @@ public class Checker : Visitor<Expression?> {
         var returnTypeName = CType(node.Type);
         var name = node.Name.Accept(this);
         node.Body?.Accept(this);
+        */
         return null;
     }
 
@@ -190,7 +197,13 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(LiteralLikeNode node) {
-        return node;
+        return node.Kind switch {
+            SyntaxKind.IntLiteral => new KeywordLikeNode(SyntaxKind.IntKeyword),
+            SyntaxKind.StringLiteral => new KeywordLikeNode(SyntaxKind.StringKeyword),
+            SyntaxKind.TrueKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword),
+            SyntaxKind.BoolKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword),
+            _ => null
+        };
     }
 
     public Expression? Visit(BreakStatement node) {
@@ -198,6 +211,7 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(IfStatement node) {
+        /*
         var expr = node.Expression.Accept(this);
         node.ThenStatement.Accept(this);
         if (node.ElseStatement is null) {
@@ -208,6 +222,7 @@ public class Checker : Visitor<Expression?> {
                 node.ElseStatement.Accept(this);
             }
         }
+        */
         return null;
     }
 

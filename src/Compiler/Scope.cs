@@ -24,4 +24,12 @@ public class Scope {
 
         return null;
     }
+
+    public Entity? GetLocal(string s) {
+        if (identifiers.TryGetValue(s, out var value)) {
+            return value;
+        }
+
+        return null;
+    }
 }

@@ -25,6 +25,18 @@ public class ToplevelScope {
         return currentScope.Get(s);
     }
 
+    public Entity? GetLocal(string s) {
+        return currentScope.GetLocal(s);
+    }
+
+    public bool Contains(string s) {
+        return currentScope.Get(s) is not null;
+    }
+
+    public bool ContainsLocal(string s) {
+        return currentScope.GetLocal(s) is not null;
+    }
+
     public void EnterScope() {
         savedScope = currentScope;
         currentScope = new Scope(currentScope);
