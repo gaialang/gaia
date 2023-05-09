@@ -7,7 +7,7 @@ namespace Gaia.Compiler;
 
 public record TypeName(string Prefix, string Suffix = "");
 
-public class Emitter : Visitor<string, object?> {
+public class Emitter : Visitor<string> {
     private Writer writer;
     private int indent = 0;
 
@@ -23,7 +23,7 @@ public class Emitter : Visitor<string, object?> {
         return sb.ToString();
     }
 
-    public string Visit(PackageDeclaration pkg, object? ctx = null) {
+    public string Visit(PackageDeclaration pkg) {
         // include headers.
         writer.WriteLine("#include <stdio.h>");
         writer.WriteLine("#include <stdlib.h>");
@@ -34,11 +34,11 @@ public class Emitter : Visitor<string, object?> {
         // Hoist functions
         foreach (var stmt in pkg.Statements) {
             if (stmt is FunctionDeclaration func) {
-                var name = func.Name.Accept(this, ctx);
+                var name = func.Name.Accept(this);
                 if (name == "main") {
                     continue;
                 }
-                var proto = CFunctionPrototype(func, ctx);
+                var proto = CFunctionPrototype(func);
                 writer.WriteLine($"{proto};");
             }
         }
@@ -46,27 +46,27 @@ public class Emitter : Visitor<string, object?> {
         // TODO: optimize indentations.
         foreach (var stmt in pkg.Statements) {
             writer.WriteLine();
-            stmt.Accept(this, ctx);
+            stmt.Accept(this);
         }
         return "";
     }
 
-    public string Visit(ImportDeclaration node, object? ctx = null) {
+    public string Visit(ImportDeclaration node) {
         writer.WriteLine($"#include <{node.ModuleSpecifier}.h>");
         return "";
     }
 
-    public string Visit(Identifier id, object? ctx = null) {
+    public string Visit(Identifier id) {
         return id.Text;
     }
 
-    public string Visit(VariableDeclaration node, object? ctx = null) {
+    public string Visit(VariableDeclaration node) {
         var typeName = CType(node.Type);
-        var name = node.Name.Accept(this, ctx);
+        var name = node.Name.Accept(this);
         if (node.Initializer is null) {
             writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix};");
         } else {
-            var val = node.Initializer.Accept(this, ctx);
+            var val = node.Initializer.Accept(this);
             writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix} = {val};");
         }
         return "";
@@ -119,66 +119,66 @@ public class Emitter : Visitor<string, object?> {
         return new TypeName(prefix, suffix);
     }
 
-    public string Visit(UnaryExpression n, object? ctx = null) {
+    public string Visit(UnaryExpression n) {
         var op = TokenToText[n.Operator];
-        var operand = n.Operand.Accept(this, ctx);
+        var operand = n.Operand.Accept(this);
         return $"{op}{operand}";
     }
 
-    public string Visit(KeywordLikeNode n, object? ctx = null) {
+    public string Visit(KeywordLikeNode n) {
         return TokenToText[n.Kind];
     }
 
-    public string Visit(BinaryExpression n, object? ctx = null) {
-        var lhs = n.Left.Accept(this, ctx);
-        var rhs = n.Right.Accept(this, ctx);
+    public string Visit(BinaryExpression n) {
+        var lhs = n.Left.Accept(this);
+        var rhs = n.Right.Accept(this);
         var op = TokenToText[n.OperatorToken];
         return $"{lhs} {op} {rhs}";
     }
 
-    private string CFunctionPrototype(FunctionDeclaration node, object? ctx = null) {
+    private string CFunctionPrototype(FunctionDeclaration node) {
         var list = new List<string>();
         foreach (var item in node.Parameters) {
-            var paramName = item.Name.Accept(this, ctx);
+            var paramName = item.Name.Accept(this);
             var paramTypeName = CType(item.Type);
             list.Add($"{paramTypeName.Prefix} {paramName}{paramTypeName.Suffix}");
         }
         var paramsText = string.Join(", ", list);
 
         var returnTypeName = CType(node.Type);
-        var name = node.Name.Accept(this, ctx);
+        var name = node.Name.Accept(this);
         return $"{returnTypeName.Prefix}{returnTypeName.Suffix} {name}({paramsText})";
     }
 
-    public string Visit(FunctionDeclaration node, object? ctx = null) {
-        var proto = CFunctionPrototype(node, ctx);
+    public string Visit(FunctionDeclaration node) {
+        var proto = CFunctionPrototype(node);
         writer.WriteLine($"{proto} {{");
         indent++;
-        node.Body?.Accept(this, ctx);
+        node.Body?.Accept(this);
         writer.WriteLine("}");
         indent--;
         return "";
     }
 
-    public string Visit(Parameter node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
-        var typ = node.Type.Accept(this, ctx);
+    public string Visit(Parameter node) {
+        var name = node.Name.Accept(this);
+        var typ = node.Type.Accept(this);
         return $"{name}: {typ}";
     }
 
-    public string Visit(WhileStatement node, object? ctx = null) {
-        var expr = node.Expression.Accept(this, ctx);
+    public string Visit(WhileStatement node) {
+        var expr = node.Expression.Accept(this);
         writer.WriteLine($"while ({expr}) {{");
         indent++;
-        node.Body.Accept(this, ctx);
+        node.Body.Accept(this);
         indent--;
         writer.Write(Indent());
         writer.WriteLine("}");
         return "";
     }
 
-    public string Visit(ReturnStatement node, object? ctx = null) {
-        var s = node.Expression?.Accept(this, ctx);
+    public string Visit(ReturnStatement node) {
+        var s = node.Expression?.Accept(this);
         if (s is null) {
             writer.WriteLine($"return;");
         } else {
@@ -187,40 +187,40 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(AssignStatement node, object? ctx = null) {
-        var name = node.Left.Accept(this, ctx);
-        var val = node.Right.Accept(this, ctx);
+    public string Visit(AssignStatement node) {
+        var name = node.Left.Accept(this);
+        var val = node.Right.Accept(this);
         writer.WriteLine($"{name} = {val};");
         return "";
     }
 
-    public string Visit(Block node, object? ctx = null) {
+    public string Visit(Block node) {
         var kinds = new HashSet<SyntaxKind>() { SyntaxKind.WhileStatement, SyntaxKind.DoStatement };
         foreach (var stmt in node.Statements) {
             if (kinds.Contains(stmt.Kind)) {
                 writer.WriteLine();
             }
             writer.Write(Indent());
-            stmt.Accept(this, ctx);
+            stmt.Accept(this);
         }
 
         return "";
     }
 
-    public string Visit(LiteralLikeNode node, object? ctx = null) {
+    public string Visit(LiteralLikeNode node) {
         return node.Text;
     }
 
-    public string Visit(BreakStatement node, object? ctx = null) {
+    public string Visit(BreakStatement node) {
         writer.WriteLine("break;");
         return "";
     }
 
-    public string Visit(IfStatement node, object? ctx = null) {
-        var expr = node.Expression.Accept(this, ctx);
+    public string Visit(IfStatement node) {
+        var expr = node.Expression.Accept(this);
         writer.WriteLine($"if ({expr}) {{");
         indent++;
-        node.ThenStatement.Accept(this, ctx);
+        node.ThenStatement.Accept(this);
         if (node.ElseStatement is null) {
             indent--;
             writer.Write(Indent());
@@ -230,13 +230,13 @@ public class Emitter : Visitor<string, object?> {
                 indent--;
                 writer.Write(Indent());
                 writer.Write("} else ");
-                node.ElseStatement.Accept(this, ctx);
+                node.ElseStatement.Accept(this);
             } else {
                 indent--;
                 writer.Write(Indent());
                 writer.WriteLine("} else {");
                 indent++;
-                node.ElseStatement.Accept(this, ctx);
+                node.ElseStatement.Accept(this);
                 indent--;
                 writer.Write(Indent());
                 writer.WriteLine("}");
@@ -245,36 +245,36 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(ElementAssignStatement node, object? ctx = null) {
-        var l = node.Left.Accept(this, ctx);
-        var r = node.Right.Accept(this, ctx);
+    public string Visit(ElementAssignStatement node) {
+        var l = node.Left.Accept(this);
+        var r = node.Right.Accept(this);
         writer.WriteLine($"{l} = {r};");
         return "";
     }
 
-    public string Visit(ElementAccessExpression expr, object? ctx = null) {
-        var l = expr.Expression.Accept(this, ctx);
-        var index = expr.ArgumentExpression.Accept(this, ctx);
+    public string Visit(ElementAccessExpression expr) {
+        var l = expr.Expression.Accept(this);
+        var index = expr.ArgumentExpression.Accept(this);
         return $"{l}[{index}]";
     }
 
-    public string Visit(DoStatement node, object? ctx = null) {
+    public string Visit(DoStatement node) {
         writer.WriteLine("do {");
         indent++;
-        node.Body.Accept(this, ctx);
+        node.Body.Accept(this);
         indent--;
         writer.Write(Indent());
-        var expr = node.Expression.Accept(this, ctx);
+        var expr = node.Expression.Accept(this);
         writer.WriteLine($"}} while ({expr});");
         return "";
     }
 
-    public string Visit(CallExpression node, object? ctx = null) {
-        var expr = node.Expression.Accept(this, ctx);
+    public string Visit(CallExpression node) {
+        var expr = node.Expression.Accept(this);
 
         var list = new List<string>();
         foreach (var item in node.Arguments) {
-            var s = item.Accept(this, ctx);
+            var s = item.Accept(this);
             list.Add(s);
         }
         var args = string.Join(", ", list);
@@ -282,40 +282,40 @@ public class Emitter : Visitor<string, object?> {
         return $"{expr}({args});";
     }
 
-    public string Visit(ExpressionStatement node, object? ctx = null) {
-        var expr = node.Expression.Accept(this, ctx);
+    public string Visit(ExpressionStatement node) {
+        var expr = node.Expression.Accept(this);
         writer.WriteLine(expr);
         return "";
     }
 
-    public string Visit(ArrayLiteralExpression node, object? ctx = null) {
+    public string Visit(ArrayLiteralExpression node) {
         var list = new List<string>();
         foreach (var item in node.Elements) {
-            var i = item.Accept(this, ctx);
+            var i = item.Accept(this);
             list.Add(i);
         }
         var elems = string.Join(", ", list);
         return $"{{{elems}}}";
     }
 
-    public string Visit(ArrayType node, object? ctx = null) {
-        var elem = node.ElementType.Accept(this, ctx);
+    public string Visit(ArrayType node) {
+        var elem = node.ElementType.Accept(this);
         return $"{elem}[]";
     }
 
-    public string Visit(IndexedAccessType node, object? ctx = null) {
-        var objType = node.ObjectType.Accept(this, ctx);
+    public string Visit(IndexedAccessType node) {
+        var objType = node.ObjectType.Accept(this);
         return $"{objType}[{node.IndexType}]";
     }
 
-    public string Visit(StructDeclaration node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(StructDeclaration node) {
+        var name = node.Name.Accept(this);
         writer.WriteLine($"typedef struct {name} {{");
         indent++;
 
         foreach (var item in node.Members) {
             writer.Write(Indent());
-            item.Accept(this, ctx);
+            item.Accept(this);
         }
 
         writer.WriteLine($"}} {name};");
@@ -323,22 +323,22 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(PropertySignature node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(PropertySignature node) {
+        var name = node.Name.Accept(this);
         var typeName = CType(node.Type);
         writer.WriteLine($"{typeName.Prefix} {name}{typeName.Suffix};");
         return "";
     }
 
-    public string Visit(InterfaceDeclaration node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(InterfaceDeclaration node) {
+        var name = node.Name.Accept(this);
         writer.WriteLine($"// interface {name} {{");
         indent++;
 
         foreach (var item in node.Members) {
             writer.Write("// ");
             writer.Write(Indent());
-            item.Accept(this, ctx);
+            item.Accept(this);
         }
 
         writer.WriteLine($"// }}");
@@ -346,29 +346,29 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(MethodSignature node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(MethodSignature node) {
+        var name = node.Name.Accept(this);
 
         var list = new List<string>();
         foreach (var item in node.Parameters) {
-            var parameter = item.Accept(this, ctx);
+            var parameter = item.Accept(this);
             list.Add(parameter);
         }
         var paramsText = string.Join(", ", list);
 
-        var returnType = node.Type.Accept(this, ctx);
+        var returnType = node.Type.Accept(this);
         writer.WriteLine($"{name}({paramsText}) -> {returnType}");
         return "";
     }
 
-    public string Visit(EnumDeclaration node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(EnumDeclaration node) {
+        var name = node.Name.Accept(this);
         writer.WriteLine($"typedef enum {name} {{");
         indent++;
 
         foreach (var item in node.Members) {
             writer.Write(Indent());
-            item.Accept(this, ctx);
+            item.Accept(this);
         }
 
         writer.WriteLine($"}} {name};");
@@ -376,12 +376,12 @@ public class Emitter : Visitor<string, object?> {
         return "";
     }
 
-    public string Visit(EnumMember node, object? ctx = null) {
-        var name = node.Name.Accept(this, ctx);
+    public string Visit(EnumMember node) {
+        var name = node.Name.Accept(this);
         if (node.Initializer is null) {
             writer.WriteLine($"{name},");
         } else {
-            var val = node.Initializer.Accept(this, ctx);
+            var val = node.Initializer.Accept(this);
             writer.WriteLine($"{name} = {val},");
         }
         return "";

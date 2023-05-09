@@ -4,8 +4,8 @@ namespace Gaia.AST;
 
 public sealed class UnaryExpression : Expression {
     public SyntaxKind Operator { get; }
-    public Node Operand { get; }
-    public UnaryExpression(SyntaxKind op, Node operand) {
+    public Expression Operand { get; }
+    public UnaryExpression(SyntaxKind op, Expression operand) {
         Operator = op;
         Operand = operand;
         Kind = SyntaxKind.UnaryExpression;
@@ -13,7 +13,7 @@ public sealed class UnaryExpression : Expression {
 
     public SyntaxKind Kind { get; }
 
-    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
-        return v.Visit(this, ctx);
+    public TResult Accept<TResult>(Visitor<TResult> visitor) {
+        return visitor.Visit(this);
     }
 }

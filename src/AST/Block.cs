@@ -12,7 +12,7 @@ public class Block : Statement {
 
     public SyntaxKind Kind { get; }
 
-    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> v, TContext ctx) {
-        return v.Visit(this, ctx);
+    public TResult Accept<TResult>(Visitor<TResult> visitor) {
+        return visitor.Visit(this);
     }
 }

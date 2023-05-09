@@ -8,5 +8,5 @@ namespace Gaia.AST;
 /// </summary>
 public interface Node {
     SyntaxKind Kind { get; }
-    TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx);
+    TResult Accept<TResult>(Visitor<TResult> visitor);
 }

@@ -74,6 +74,7 @@ public enum SyntaxKind {
     NullKeyword,
     EnumKeyword,
     InterfaceKeyword,
+    BoolKeyword,
 
     // TypeMember
     PropertySignature,

@@ -14,7 +14,7 @@ public sealed class StructDeclaration : Statement {
 
     public SyntaxKind Kind { get; }
 
-    public TResult Accept<TResult, TContext>(Visitor<TResult, TContext> visitor, TContext ctx) {
-        return visitor.Visit(this, ctx);
+    public TResult Accept<TResult>(Visitor<TResult> visitor) {
+        return visitor.Visit(this);
     }
 }

@@ -22,6 +22,7 @@ public static class SyntaxKindText {
         {"enum", SyntaxKind.EnumKeyword},
         {"interface", SyntaxKind.InterfaceKeyword},
         {"void", SyntaxKind.VoidKeyword},
+        {"bool", SyntaxKind.BoolKeyword},
     };
 
     public static readonly Dictionary<string, SyntaxKind> TextToToken = TextToKeyword.Union(new Dictionary<string, SyntaxKind>() {

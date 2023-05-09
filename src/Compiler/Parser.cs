@@ -65,24 +65,19 @@ public sealed class Parser {
         return scanner.TokenValue;
     }
 
-    public static void Error(string s) {
-        throw new Exception($"Near line {Scanner.Line} column {Scanner.Column}: {s}.");
-    }
-
     /// <summary>
     /// Match and move to the next token.
     /// </summary>
-    /// <param name="t"></param>
-    private bool ParseExpected(SyntaxKind t, bool shouldAdvance = true) {
-        if (Token() == t) {
+    /// <param name="kind"></param>
+    private bool ParseExpected(SyntaxKind kind, bool shouldAdvance = true) {
+        if (Token() == kind) {
             if (shouldAdvance) {
                 NextToken();
             }
             return true;
         }
 
-        Error($"expected {t}, but got {Token()}");
-        return false;
+        throw new ParseError($"expected {kind}, but got {Token()}");
     }
 
     private bool CanParseSemicolon() {
@@ -123,7 +118,7 @@ public sealed class Parser {
     public Statement ParsePackage() {
         if (Token() != SyntaxKind.PackageKeyword) {
             var s = Token();
-            Error($"expected package, but got {s}");
+            throw new ParseError($"expected package, but got {s}");
         }
 
         // Match package statement.
@@ -254,16 +249,16 @@ public sealed class Parser {
         ParseExpected(SyntaxKind.ColonToken);
         var typ = ParseType();
 
-        Expression? s = null;
+        Expression? x = null;
         if (Token() is not SyntaxKind.EqualsToken) {
             ParseSemicolon();
         } else {
             ParseExpected(SyntaxKind.EqualsToken);
-            s = ParseExpression();
+            x = ParseExpression();
             ParseSemicolon();
         }
         var id = new Identifier(tokenValue);
-        var VarStmt = new VariableDeclaration(id, typ, s);
+        var VarStmt = new VariableDeclaration(id, typ, x);
         return VarStmt;
     }
 
@@ -277,12 +272,12 @@ public sealed class Parser {
         case SyntaxKind.CharKeyword:
         case SyntaxKind.StringKeyword:
         case SyntaxKind.VoidKeyword:
+        case SyntaxKind.BoolKeyword:
             typ = new KeywordLikeNode(token, pos, GetTokenEnd());
             NextToken();
             break;
         default:
-            Error("no valid type");
-            return null;
+            throw new ParseError("no valid type");
         }
 
         if (Token() != SyntaxKind.OpenBracketToken) {
@@ -310,8 +305,7 @@ public sealed class Parser {
             NextToken();
             return ParseArrayType(typ);
         default:
-            Error("array type error");
-            return null;
+            throw new ParseError("array type error");
         }
     }
 
@@ -325,16 +319,16 @@ public sealed class Parser {
         return new ArrayType(a, pos, GetTokenEnd());
     }
 
-    private IndexedAccessType ParseIndexedAccess(Expression p, string s) {
+    private IndexedAccessType ParseIndexedAccess(Expression x, string s) {
         var pos = GetNodePos();
         if (Token() == SyntaxKind.OpenBracketToken) {
             NextToken();
             var tokenValue = GetTokenValue();
             ParseExpected(SyntaxKind.IntLiteral);
             ParseExpected(SyntaxKind.CloseBracketToken);
-            p = ParseIndexedAccess(p, tokenValue);
+            x = ParseIndexedAccess(x, tokenValue);
         }
-        return new IndexedAccessType(p, s, pos, GetTokenEnd());
+        return new IndexedAccessType(x, s, pos, GetTokenEnd());
     }
 
     private Expression ParseUnaryExpression() {
@@ -386,8 +380,7 @@ public sealed class Parser {
         case SyntaxKind.OpenBracketToken:
             return ParseArrayLiteral();
         default:
-            Error("Primary has a bug");
-            return null;
+            throw new ParseError("ParsePrimaryExpression has a bug");
         }
     }
 
@@ -631,8 +624,7 @@ public sealed class Parser {
         case SyntaxKind.Identifier:
             return ParseAssignOrCall();
         default:
-            Error("unknown statement");
-            return null;
+            throw new ParseError("unknown statement");
         }
     }
 
