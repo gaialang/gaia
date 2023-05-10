@@ -12,6 +12,8 @@ public class ElementAssignStatement : Statement {
         Kind = SyntaxKind.ElementAssignStatement;
     }
 
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

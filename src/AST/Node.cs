@@ -6,7 +6,7 @@ namespace Gaia.AST;
 /// A node can be an expression, statement, or both.
 /// It conforms to the visitor pattern.
 /// </summary>
-public interface Node {
+public interface Node : ReadOnlyTextRange {
     SyntaxKind Kind { get; }
     TResult Accept<TResult>(Visitor<TResult> visitor);
 }

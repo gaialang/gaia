@@ -17,7 +17,8 @@ public sealed class MethodSignature : Statement {
     /// Return type.
     /// </summary>
     public Expression Type { get; }
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

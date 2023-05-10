@@ -11,7 +11,8 @@ public sealed class WhileStatement : Statement {
 
     public Expression Expression { get; }
     public Block Body { get; }
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

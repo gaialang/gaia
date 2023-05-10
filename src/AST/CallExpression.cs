@@ -12,6 +12,8 @@ public class CallExpression : Expression {
     public Expression Expression { get; private set; }
     public List<Expression> Arguments { get; private set; }
 
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

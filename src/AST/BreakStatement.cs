@@ -9,6 +9,8 @@ public class BreakStatement : Statement {
     }
 
     public string Label { get; }
+    public int Pos { get; }
+    public int End { get; }
 
     public SyntaxKind Kind { get; }
 

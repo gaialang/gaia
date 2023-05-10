@@ -20,7 +20,8 @@ public sealed class FunctionDeclaration : Statement {
     public Expression Type { get; }
 
     public Block Body { get; private set; }
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

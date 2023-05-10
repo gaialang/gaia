@@ -10,9 +10,9 @@ public class ToplevelScope {
     public ToplevelScope() {
         // built in
         currentScope.Add("printf", new FunctionEntity(
-            new KeywordLikeNode(SyntaxKind.VoidKeyword),
+            new KeywordLikeNode(SyntaxKind.VoidKeyword, -1, -1),
             new List<Parameter>() {
-                new Parameter(new Identifier("format"), new KeywordLikeNode(SyntaxKind.StringKeyword))
+                new Parameter(new Identifier("format",-1,-1), new KeywordLikeNode(SyntaxKind.StringKeyword,-1,-1))
             })
         );
     }

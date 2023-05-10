@@ -1,5 +1,7 @@
 package main
 
+import "xyz"
+
 /*
 struct Book {
     title: string
@@ -18,8 +20,8 @@ enum AAA {
 }
 */
 
-var a: int = "x"
-var a: string
+var abc: int = "xyz"
+var abc: string
 
 /*
 func main() -> int {

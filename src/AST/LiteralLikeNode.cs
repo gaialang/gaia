@@ -3,7 +3,7 @@ using Gaia.Domain;
 namespace Gaia.AST;
 
 public class LiteralLikeNode : Expression {
-    public LiteralLikeNode(SyntaxKind kind, string text, int pos = -1, int end = -1) {
+    public LiteralLikeNode(SyntaxKind kind, string text, int pos, int end) {
         Text = text;
         Kind = kind;
         Pos = pos;

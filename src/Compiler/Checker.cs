@@ -7,6 +7,15 @@ namespace Gaia.Compiler;
 
 public class Checker : Visitor<Expression?> {
     private ToplevelScope toplevelScope = new ToplevelScope();
+    private Scanner scanner;
+
+    public Checker(Scanner scanner) {
+        this.scanner = scanner;
+    }
+
+    public string LineColumn(int pos) {
+        return scanner.LineColumn(pos);
+    }
 
     public Expression? Visit(PackageDeclaration pkg) {
         // Hoist functions to scope
@@ -28,20 +37,20 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(Identifier id) {
-        var e = toplevelScope.Get(id.Text) ?? throw new CheckError($"Unknown identifier {id.Text}");
+        var e = toplevelScope.Get(id.Text) ?? throw new CheckError($"{LineColumn(id.Pos)}: Unknown identifier {id.Text}");
         return e.Type;
     }
 
     public Expression? Visit(VariableDeclaration node) {
         var name = node.Name.Text;
         if (toplevelScope.ContainsLocal(name)) {
-            throw new CheckError($"Variable {name} already declared");
+            throw new CheckError($"{LineColumn(node.Name.Pos)}: Variable `{name}` already declared");
         }
 
         if (node.Initializer is not null) {
             var typ = node.Initializer.Accept(this);
             if (!Equals(node.Type, typ)) {
-                throw new CheckError($"Type mismatch {node.Type.Kind} != {typ!.Kind}");
+                throw new CheckError($"{LineColumn(node.Initializer.Pos)}: Type mismatch, expected {TokenToText[node.Type.Kind]} but got {TokenToText[typ!.Kind]}");
             }
         }
         toplevelScope.Add(name, new VariableEntity(node.Type));
@@ -78,7 +87,7 @@ public class Checker : Visitor<Expression?> {
     }
 
     private static string CPrimitive(SyntaxKind kind) {
-        if (kind is SyntaxKind.StringKeyword) {
+        if (kind == SyntaxKind.StringKeyword) {
             return "char*";
         }
         return TokenToText[kind];
@@ -113,8 +122,8 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(UnaryExpression node) {
-        if (node.Operator is SyntaxKind.ExclamationToken) {
-            return new KeywordLikeNode(SyntaxKind.BoolKeyword);
+        if (node.Operator == SyntaxKind.ExclamationToken) {
+            return new KeywordLikeNode(SyntaxKind.BoolKeyword, -1, -1);
         } else {
             return node.Operand.Accept(this);
         }
@@ -198,10 +207,10 @@ public class Checker : Visitor<Expression?> {
 
     public Expression? Visit(LiteralLikeNode node) {
         return node.Kind switch {
-            SyntaxKind.IntLiteral => new KeywordLikeNode(SyntaxKind.IntKeyword),
-            SyntaxKind.StringLiteral => new KeywordLikeNode(SyntaxKind.StringKeyword),
-            SyntaxKind.TrueKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword),
-            SyntaxKind.BoolKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword),
+            SyntaxKind.IntLiteral => new KeywordLikeNode(SyntaxKind.IntKeyword, -1, -1),
+            SyntaxKind.StringLiteral => new KeywordLikeNode(SyntaxKind.StringKeyword, -1, -1),
+            SyntaxKind.TrueKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword, -1, -1),
+            SyntaxKind.BoolKeyword => new KeywordLikeNode(SyntaxKind.BoolKeyword, -1, -1),
             _ => null
         };
     }

@@ -1,138 +1,325 @@
 using System.Text;
+using Gaia.AST;
 using Gaia.Domain;
+using System.Diagnostics;
 using static Gaia.Domain.SyntaxKindText;
 
 namespace Gaia.Compiler;
 
+public record LineAndCharacter(int Line, int Character);
+
 public class Scanner {
-    public static int Line { get; private set; } = 1;
-    // After reading a char, Pos will be the right number.
-    public static int Column { get; private set; } = 0;
-
-    public static int Pos { get; private set; } = 0;
-
+    private int pos = 0;
+    private int end = 0;
     // Start position of whitespace before current token
     public int FullStartPos { get; private set; } = 0;
     public int TokenStart { get; private set; } = 0;
-    public int TokenEnd => Pos;
+    public int TokenEnd => pos;
     private string text = "";
+    private SourceFile sourceFile;
 
     public bool IsAtEnd { get; private set; } = false;
     private SyntaxKind token = SyntaxKind.Unknown;
     public TokenFlags TokenFlags { get; private set; } = TokenFlags.None;
     public string TokenValue { get; private set; } = "";
 
-    private readonly StreamReader source;
-
-    // Current index of the token list.
-    private int current = 0;
-
     public Scanner() {
-        var path = Path.Combine(AppContext.BaseDirectory, "tests/test.ga");
-        source = new StreamReader(path);
+        sourceFile = new SourceFile();
+        setText(sourceFile.Text);
+    }
+
+    public void setText(string newText) {
+        text = newText;
+        end = text.Length;
+    }
+
+    public string LineColumn(int pos) {
+        var lineAndCharacter = getLineAndCharacterOfPosition(pos);
+        return $"({lineAndCharacter.Line + 1},{lineAndCharacter.Character + 2})";
+    }
+
+    public List<int> computeLineStarts(string text) {
+        var result = new List<int>();
+        var pos = 0;
+        var lineStart = 0;
+        while (pos < text.Length) {
+            var ch = (CharacterCodes)text[pos];
+            pos++;
+            switch (ch) {
+            case CharacterCodes.carriageReturn:
+                if ((CharacterCodes)text[pos] == CharacterCodes.lineFeed) {
+                    pos++;
+                }
+                // falls through
+                goto case CharacterCodes.lineFeed;
+            case CharacterCodes.lineFeed:
+                result.Add(lineStart);
+                lineStart = pos;
+                break;
+            default:
+                if (ch > CharacterCodes.maxAsciiCharacter && isLineBreak(ch)) {
+                    result.Add(lineStart);
+                    lineStart = pos;
+                }
+                break;
+            }
+        }
+        result.Add(lineStart);
+        return result;
+    }
+
+    public bool isWhiteSpaceLike(CharacterCodes ch) {
+        return isWhiteSpaceSingleLine(ch) || isLineBreak(ch);
+    }
+
+    /** Does not include line breaks. For that, see isWhiteSpaceLike. */
+    public bool isWhiteSpaceSingleLine(CharacterCodes ch) {
+        // Note: nextLine is in the Zs space, and should be considered to be a whitespace.
+        // It is explicitly not a line-break as it isn't in the exact set specified by EcmaScript.
+        return ch == CharacterCodes.space ||
+            ch == CharacterCodes.tab ||
+            ch == CharacterCodes.verticalTab ||
+            ch == CharacterCodes.formFeed ||
+            ch == CharacterCodes.nonBreakingSpace ||
+            ch == CharacterCodes.nextLine ||
+            ch == CharacterCodes.ogham ||
+            ch >= CharacterCodes.enQuad && ch <= CharacterCodes.zeroWidthSpace ||
+            ch == CharacterCodes.narrowNoBreakSpace ||
+            ch == CharacterCodes.mathematicalSpace ||
+            ch == CharacterCodes.ideographicSpace ||
+            ch == CharacterCodes.byteOrderMark;
+    }
+
+    public List<int> getLineStarts(SourceFile sf) {
+        if (sf.LineMap is null) {
+            sf.LineMap = computeLineStarts(sf.Text);
+        }
+        return sf.LineMap;
+    }
+
+    public int getPositionOfLineAndCharacter(int line, int character) {
+        return computePositionOfLineAndCharacter(getLineStarts(sourceFile), line, character, sourceFile.Text);
+    }
+
+    public int computePositionOfLineAndCharacter(List<int> lineStarts, int line, int character, string debugText) {
+        if (line < 0 || line >= lineStarts.Count) {
+            Debug.Fail($"Bad line number. Line: {line}");
+        }
+
+        var res = lineStarts[line] + character;
+        if (line < lineStarts.Count - 1) {
+            Debug.Assert(res < lineStarts[line + 1]);
+        }
+        Debug.Assert(res <= debugText.Length); // Allow single character overflow for trailing newline
+        return res;
+    }
+
+    public LineAndCharacter computeLineAndCharacterOfPosition(List<int> lineStarts, int position) {
+        var lineNumber = computeLineOfPosition(lineStarts, position);
+        return new LineAndCharacter(lineNumber, position - lineStarts[lineNumber]);
+    }
+
+    public int computeLineOfPosition(List<int> lineStarts, int position) {
+        var lineNumber = binarySearch(lineStarts, position);
+        if (lineNumber < 0) {
+            // If the actual position was not found,
+            // the binary search returns the 2's-complement of the next line start
+            // e.g. if the line starts at [5, 10, 23, 80] and the position requested was 20
+            // then the search will return -2.
+            //
+            // We want the index of the previous line start, so we subtract 1.
+            // Review 2's-complement if this is confusing.
+            lineNumber = ~lineNumber - 1;
+            Debug.Assert(lineNumber != -1, "position cannot precede the beginning of the file");
+        }
+        return lineNumber;
+    }
+
+    private int binarySearch(List<int> lineStarts, int position) {
+        var low = 0;
+        var high = lineStarts.Count - 1;
+        while (low <= high) {
+            var mid = low + (high - low) / 2;
+            if (position < lineStarts[mid]) {
+                high = mid - 1;
+            } else if (position > lineStarts[mid]) {
+                low = mid + 1;
+            } else {
+                return lineStarts[mid];
+            }
+        }
+
+        return ~low;
+    }
+
+    public LineAndCharacter getLineAndCharacterOfPosition(int position) {
+        return computeLineAndCharacterOfPosition(getLineStarts(sourceFile), position);
+    }
+
+    public bool isLineBreak(CharacterCodes ch) {
+        return ch == CharacterCodes.lineFeed ||
+            ch == CharacterCodes.carriageReturn ||
+            ch == CharacterCodes.lineSeparator ||
+            ch == CharacterCodes.paragraphSeparator;
     }
 
     public bool HasPrecedingLineBreak() => (TokenFlags & TokenFlags.PrecedingLineBreak) != 0;
 
     public SyntaxKind Scan() {
-        FullStartPos = Pos;
+        FullStartPos = pos;
         TokenFlags = TokenFlags.None;
 
-        SkipWhitespace();
-
-        TokenStart = Pos;
-        var ch = ReadChar();
-        switch (ch) {
-        case '&':
-            if (MatchChar('&')) {
-                return AddToken(SyntaxKind.AmpersandAmpersandToken);
-            } else {
-                return AddToken(SyntaxKind.AmpersandToken);
-            }
-        case '|':
-            if (MatchChar('|')) {
-                return AddToken(SyntaxKind.BarBarToken);
-            } else {
-                return AddToken(SyntaxKind.BarToken);
-            }
-        case '!':
-            if (MatchChar('=')) {
-                return AddToken(SyntaxKind.ExclamationEqualsToken);
-            } else {
-                return AddToken(SyntaxKind.ExclamationToken);
-            }
-        case '"':
-            return AddToken(SyntaxKind.StringLiteral, ScanString(ch));
-        case '\'':
-            return AddToken(SyntaxKind.CharacterLiteral, ScanCharacter(ch));
-        case ',':
-            return AddToken(SyntaxKind.CommaToken);
-        case '(':
-            return AddToken(SyntaxKind.OpenParenToken);
-        case ')':
-            return AddToken(SyntaxKind.CloseParenToken);
-        case '[':
-            return AddToken(SyntaxKind.OpenBracketToken);
-        case ']':
-            return AddToken(SyntaxKind.CloseBracketToken);
-        case '{':
-            return AddToken(SyntaxKind.OpenBraceToken);
-        case '}':
-            return AddToken(SyntaxKind.CloseBraceToken);
-        case ';':
-            return AddToken(SyntaxKind.SemicolonToken);
-        case ':':
-            return AddToken(SyntaxKind.ColonToken);
-        case '+':
-            return AddToken(SyntaxKind.PlusToken);
-        case '-':
-            if (MatchChar('>')) {
-                return AddToken(SyntaxKind.MinusGreaterThanToken);
-            } else {
-                return AddToken(SyntaxKind.MinusToken);
-            }
-        case '*':
-            return AddToken(SyntaxKind.AsteriskToken);
-        case '/':
-            if (MatchChar('/')) {
-                // Ignore comments, skip a line and re-scan.
-                SkipLineComment();
-                return Scan();
-            } else if (MatchChar('*')) {
-                SkipBlockComment();
-                return Scan();
-            } else {
-                return AddToken(SyntaxKind.SlashToken);
-            }
-        case '=':
-            if (MatchChar('=')) {
-                return AddToken(SyntaxKind.EqualsEqualsToken);
-            } else {
-                return AddToken(SyntaxKind.EqualsToken);
-            }
-        case '<':
-            if (MatchChar('=')) {
-                return AddToken(SyntaxKind.LessThanEqualsToken);
-            } else {
-                return AddToken(SyntaxKind.LessThanToken);
-            }
-        case '>':
-            if (MatchChar('=')) {
-                return AddToken(SyntaxKind.GreaterThanEqualsToken);
-            } else {
-                return AddToken(SyntaxKind.GreaterThanToken);
-            }
-        case '\0':
-            return AddToken(SyntaxKind.EndOfFileToken);
-        default:
-            if (char.IsLetter(ch)) {
-                return ScanIdentifier(ch);
-            }
-            if (char.IsDigit(ch)) {
-                return ScanNumber(ch);
+        for (; ; ) {
+            TokenStart = pos;
+            if (pos >= end) {
+                return AddToken(SyntaxKind.EndOfFileToken);
             }
 
-            return SyntaxKind.Unknown;
+            var ch = ReadChar();
+            switch (ch) {
+            case CharacterCodes.lineFeed:
+            case CharacterCodes.carriageReturn:
+                TokenFlags |= TokenFlags.PrecedingLineBreak;
+                pos++;
+                continue;
+            case CharacterCodes.tab:
+            case CharacterCodes.verticalTab:
+            case CharacterCodes.formFeed:
+            case CharacterCodes.space:
+            case CharacterCodes.nonBreakingSpace:
+            case CharacterCodes.ogham:
+            case CharacterCodes.enQuad:
+            case CharacterCodes.emQuad:
+            case CharacterCodes.enSpace:
+            case CharacterCodes.emSpace:
+            case CharacterCodes.threePerEmSpace:
+            case CharacterCodes.fourPerEmSpace:
+            case CharacterCodes.sixPerEmSpace:
+            case CharacterCodes.figureSpace:
+            case CharacterCodes.punctuationSpace:
+            case CharacterCodes.thinSpace:
+            case CharacterCodes.hairSpace:
+            case CharacterCodes.zeroWidthSpace:
+            case CharacterCodes.narrowNoBreakSpace:
+            case CharacterCodes.mathematicalSpace:
+            case CharacterCodes.ideographicSpace:
+            case CharacterCodes.byteOrderMark:
+                pos++;
+                continue;
+            case CharacterCodes.ampersand:
+                if (MatchChar(CharacterCodes.ampersand)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.AmpersandAmpersandToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.AmpersandToken);
+                }
+            case CharacterCodes.bar:
+                if (MatchChar(CharacterCodes.bar)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.BarBarToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.BarToken);
+                }
+            case CharacterCodes.exclamation:
+                if (MatchChar(CharacterCodes.equals)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.ExclamationEqualsToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.ExclamationToken);
+                }
+            case CharacterCodes.doubleQuote:
+                return AddToken(SyntaxKind.StringLiteral, ScanString());
+            case CharacterCodes.singleQuote:
+                return AddToken(SyntaxKind.CharacterLiteral, ScanCharacter());
+            case CharacterCodes.comma:
+                pos++;
+                return AddToken(SyntaxKind.CommaToken);
+            case CharacterCodes.openParen:
+                pos++;
+                return AddToken(SyntaxKind.OpenParenToken);
+            case CharacterCodes.closeParen:
+                pos++;
+                return AddToken(SyntaxKind.CloseParenToken);
+            case CharacterCodes.openBracket:
+                pos++;
+                return AddToken(SyntaxKind.OpenBracketToken);
+            case CharacterCodes.closeBracket:
+                pos++;
+                return AddToken(SyntaxKind.CloseBracketToken);
+            case CharacterCodes.openBrace:
+                pos++;
+                return AddToken(SyntaxKind.OpenBraceToken);
+            case CharacterCodes.closeBrace:
+                pos++;
+                return AddToken(SyntaxKind.CloseBraceToken);
+            case CharacterCodes.semicolon:
+                pos++;
+                return AddToken(SyntaxKind.SemicolonToken);
+            case CharacterCodes.colon:
+                pos++;
+                return AddToken(SyntaxKind.ColonToken);
+            case CharacterCodes.plus:
+                pos++;
+                return AddToken(SyntaxKind.PlusToken);
+            case CharacterCodes.minus:
+                if (MatchChar(CharacterCodes.greaterThan)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.MinusGreaterThanToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.MinusToken);
+                }
+            case CharacterCodes.asterisk:
+                pos++;
+                return AddToken(SyntaxKind.AsteriskToken);
+            case CharacterCodes.slash:
+                if (MatchChar(CharacterCodes.slash)) {
+                    SingleLineComment();
+                    continue;
+                } else if (MatchChar(CharacterCodes.asterisk)) {
+                    MultiLineComment();
+                    continue;
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.SlashToken);
+                }
+            case CharacterCodes.equals:
+                if (MatchChar(CharacterCodes.equals)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.EqualsEqualsToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.EqualsToken);
+                }
+            case CharacterCodes.lessThan:
+                if (MatchChar(CharacterCodes.equals)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.LessThanEqualsToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.LessThanToken);
+                }
+            case CharacterCodes.greaterThan:
+                if (MatchChar(CharacterCodes.equals)) {
+                    pos += 2;
+                    return AddToken(SyntaxKind.GreaterThanEqualsToken);
+                } else {
+                    pos++;
+                    return AddToken(SyntaxKind.GreaterThanToken);
+                }
+            default:
+                if (char.IsLetter((char)ch)) {
+                    return ScanIdentifier();
+                }
+                if (char.IsDigit((char)ch)) {
+                    return ScanNumber();
+                }
+
+                return SyntaxKind.Unknown;
+            }
         }
     }
 
@@ -146,155 +333,136 @@ public class Scanner {
         return token;
     }
 
-    private SyntaxKind ScanNumber(char ch) {
-        var b = new StringBuilder();
-        b.Append(ch);
-        while (char.IsDigit(PeekChar())) {
-            b.Append(ReadChar());
+    private SyntaxKind ScanNumber() {
+        var start = pos;
+        pos++;
+        var result = "";
+
+        while (char.IsDigit((char)ReadChar())) {
+            pos++;
         }
 
-        if (PeekChar() != '.') {
-            var numInt = b.ToString();
-            return AddToken(SyntaxKind.IntLiteral, numInt);
+        if (ReadChar() != CharacterCodes.dot) {
+            result = text.Substring(start, pos - start);
+            return AddToken(SyntaxKind.IntLiteral, result);
+        }
+        pos++;
+
+        while (char.IsDigit((char)ReadChar())) {
+            pos++;
         }
 
-        b.Append(ReadChar());
-        while (char.IsDigit(PeekChar())) {
-            b.Append(ReadChar());
-        }
-
-        var numFloat = b.ToString();
-        return AddToken(SyntaxKind.FloatLiteral, numFloat);
+        result = text.Substring(start, pos - start);
+        return AddToken(SyntaxKind.FloatLiteral, result);
     }
 
-    private SyntaxKind ScanIdentifier(char ch) {
-        var b = new StringBuilder();
-        b.Append(ch);
+    private SyntaxKind ScanIdentifier() {
+        var start = pos;
+        pos++;
 
-        while (char.IsLetterOrDigit(PeekChar())) {
-            b.Append(ReadChar());
+        while (char.IsLetterOrDigit((char)ReadChar())) {
+            pos++;
         }
 
-        var s = b.ToString();
-
-        if (TextToKeyword.TryGetValue(s, out var kind)) {
+        var result = text.Substring(start, pos - start);
+        if (TextToKeyword.TryGetValue(result, out var kind)) {
             return AddToken(kind);
         }
 
-        return AddToken(SyntaxKind.Identifier, s);
+        return AddToken(SyntaxKind.Identifier, result);
     }
 
-    private string ScanString(char ch) {
-        var b = new StringBuilder();
-        b.Append(ch);
+    private string ScanString() {
+        var quote = ReadChar();
+        pos++;
 
-        while (PeekChar() != '"') {
-            b.Append(ReadChar());
-        }
-        b.Append(ReadChar());
+        var start = pos;
+        var result = "";
 
-        var s = b.ToString();
-
-        return s;
-    }
-
-    private string ScanCharacter(char first) {
-        var b = new StringBuilder();
-        b.Append(first);
-
-        if (PeekChar() != '\'') {
-            b.Append(ReadChar());
-            b.Append(ReadChar());
-        } else {
-            b.Append(ReadChar());
+        for (; ; ) {
+            if (pos >= end) {
+                result = text.Substring(start, pos - start);
+                TokenFlags |= TokenFlags.Unterminated;
+                throw new ParseError($"{LineColumn(pos)}: Unterminated string literal.");
+            }
+            var ch = ReadChar();
+            if (ch == quote) {
+                result = text.Substring(start, pos - start);
+                pos++;
+                break;
+            }
+            pos++;
         }
 
-        return b.ToString();
+        return result;
     }
 
-    private char ReadChar() {
-        var n = source.Read();
-        if (n == -1) {
-            IsAtEnd = true;
-            return '\0';
+    private string ScanCharacter() {
+        var quote = ReadChar();
+        pos++;
+
+        var result = "";
+
+        var ch = ReadChar();
+        if (ch != quote) {
+            result = text.Substring(pos, 1);
+            pos++;
         }
-        var peek = (char)n;
-        Column++;
-        Pos++;
-        return peek;
+        pos++;
+
+        return result;
     }
 
-    private bool MatchChar(char c) {
+    private CharacterCodes ReadChar() {
+        var ch = text[pos];
+        return (CharacterCodes)ch;
+    }
+
+    private bool MatchChar(CharacterCodes c) {
         if (PeekChar() == c) {
-            ReadChar();
             return true;
         } else {
             return false;
         }
-
     }
 
-    private char PeekChar() {
-        var n = source.Peek();
-        if (n == -1) {
-            return '\0';
-        }
-        var peek = (char)n;
-        return peek;
+    private CharacterCodes PeekChar() {
+        var ch = text[pos + 1];
+        return (CharacterCodes)ch;
     }
 
-    private void SkipWhitespace() {
-        while (!IsAtEnd) {
-            var c = PeekChar();
-            switch (c) {
-            case ' ':
-            case '\r':
-            case '\t':
-                ReadChar();
+    private void MultiLineComment() {
+        pos += 2;
+        var commentClosed = false;
+        var lastLineStart = TokenStart;
+        while (pos < end) {
+            var ch = ReadChar();
+            if (ch == CharacterCodes.asterisk && PeekChar() == CharacterCodes.slash) {
+                pos += 2;
+                commentClosed = true;
                 break;
-            case '\n':
-                Line++;
-                Column = 0;
-                ReadChar();
+            }
+
+            pos++;
+
+            if (isLineBreak(ch)) {
+                lastLineStart = pos;
                 TokenFlags |= TokenFlags.PrecedingLineBreak;
-                break;
-            default:
-                return;
             }
+        }
+
+        if (!commentClosed) {
+            throw new ParseError($"{LineColumn(pos)}: Unterminated multi-line comment.");
         }
     }
 
-    private void SkipBlockComment() {
-        while (!IsAtEnd) {
-            var c = PeekChar();
-            switch (c) {
-            case ' ':
-            case '\r':
-            case '\t':
-                ReadChar();
-                break;
-            case '\n':
-                Line++;
-                Column = 0;
-                ReadChar();
-                break;
-            case '*':
-                ReadChar();
-                if (MatchChar('/')) {
-                    // Reach the end of the block comment.
-                    return;
-                }
-                break;
-            default:
-                ReadChar();
+    private void SingleLineComment() {
+        pos += 2;
+        while (pos < end) {
+            if (isLineBreak(ReadChar())) {
                 break;
             }
-        }
-    }
-
-    private void SkipLineComment() {
-        while (!IsAtEnd && PeekChar() != '\n') {
-            ReadChar();
+            pos++;
         }
     }
 }

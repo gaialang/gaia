@@ -7,7 +7,7 @@ var scanner = new Scanner();
 var parser = new Parser(scanner);
 var expr = (PackageDeclaration)parser.Parse();
 
-var checker = new Checker();
+var checker = new Checker(scanner);
 checker.Visit(expr);
 
 // var file = new FileWriter();

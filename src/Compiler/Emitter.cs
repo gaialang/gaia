@@ -52,7 +52,7 @@ public class Emitter : Visitor<string> {
     }
 
     public string Visit(ImportDeclaration node) {
-        writer.WriteLine($"#include <{node.ModuleSpecifier}.h>");
+        writer.WriteLine($"#include \"{node.ModuleSpecifier}.h\"");
         return "";
     }
 
@@ -85,7 +85,7 @@ public class Emitter : Visitor<string> {
     }
 
     private static string CPrimitive(SyntaxKind kind) {
-        if (kind is SyntaxKind.StringKeyword) {
+        if (kind == SyntaxKind.StringKeyword) {
             return "char*";
         }
         return TokenToText[kind];
@@ -208,6 +208,12 @@ public class Emitter : Visitor<string> {
     }
 
     public string Visit(LiteralLikeNode node) {
+        if (node.Kind == SyntaxKind.StringLiteral) {
+            return $"\"{node.Text}\"";
+        } else if (node.Kind == SyntaxKind.CharacterLiteral) {
+            return $"'{node.Text}'";
+        }
+
         return node.Text;
     }
 

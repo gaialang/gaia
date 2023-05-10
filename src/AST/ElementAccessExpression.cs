@@ -17,6 +17,9 @@ public class ElementAccessExpression : Expression {
         ArgumentExpression = argumentExpression;
     }
 
+    public int Pos { get; }
+    public int End { get; }
+
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

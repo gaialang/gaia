@@ -9,7 +9,8 @@ public sealed class ReturnStatement : Statement {
     }
 
     public Expression? Expression { get; }
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

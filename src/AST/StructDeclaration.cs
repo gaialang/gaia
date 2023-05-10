@@ -11,7 +11,8 @@ public sealed class StructDeclaration : Statement {
 
     public Identifier Name { get; }
     public List<PropertySignature> Members { get; }
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

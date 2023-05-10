@@ -9,6 +9,8 @@ public class ExpressionStatement : Statement {
     }
 
     public Expression Expression { get; private set; }
+    public int Pos { get; }
+    public int End { get; }
 
     public SyntaxKind Kind { get; }
 

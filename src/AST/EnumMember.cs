@@ -11,6 +11,8 @@ public sealed class EnumMember : Statement {
 
     public Identifier Name { get; }
     public Expression? Initializer { get; }
+    public int Pos { get; }
+    public int End { get; }
 
     public SyntaxKind Kind { get; }
 

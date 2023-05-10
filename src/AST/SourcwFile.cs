@@ -2,17 +2,16 @@ using Gaia.Domain;
 
 namespace Gaia.AST;
 
-// TODO:
 public sealed class SourceFile {
-    public readonly string fileName;
-    /// <summary>
-    /// var or func statements.
-    /// </summary>
-    public readonly List<Statement> Statements;
+    public string FileName { get; }
+    public List<int>? LineMap { get; set; }
+    public string Text { get; }
 
-    public SourceFile(string name, List<Statement> list) {
-        fileName = name;
-        Statements = list;
+    public SourceFile() {
+        FileName = Path.Combine(AppContext.BaseDirectory, "tests/test.ga");
+        using (var sr = new StreamReader(FileName)) {
+            Text = sr.ReadToEnd();
+        }
         Kind = SyntaxKind.SourceFile;
     }
 

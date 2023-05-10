@@ -13,7 +13,8 @@ public sealed class InterfaceDeclaration : Statement {
     public List<MethodSignature> Members { get; }
     // public List<HeritageClause> HeritageClauses { get; } = new();
     // public List<HeritageClause> TypeParameters { get; } = new();
-
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

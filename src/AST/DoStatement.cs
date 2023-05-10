@@ -12,6 +12,8 @@ public class DoStatement : Statement {
         Kind = SyntaxKind.DoStatement;
     }
 
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {

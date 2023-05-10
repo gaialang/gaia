@@ -12,6 +12,8 @@ public sealed class EnumDeclaration : Statement {
     public Identifier Name { get; }
     public List<EnumMember> Members { get; }
 
+    public int Pos { get; }
+    public int End { get; }
     public SyntaxKind Kind { get; }
 
     public TResult Accept<TResult>(Visitor<TResult> visitor) {
