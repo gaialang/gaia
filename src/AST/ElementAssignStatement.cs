@@ -6,9 +6,11 @@ public class ElementAssignStatement : Statement {
     public ElementAccessExpression Left { get; }
     public Expression Right { get; }
 
-    public ElementAssignStatement(ElementAccessExpression l, Expression r) {
+    public ElementAssignStatement(ElementAccessExpression l, Expression r, int pos, int end) {
         Left = l;
         Right = r;
+        Pos = pos;
+        End = end;
         Kind = SyntaxKind.ElementAssignStatement;
     }
 

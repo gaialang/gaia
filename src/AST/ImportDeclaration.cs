@@ -4,12 +4,11 @@ namespace Gaia.AST;
 
 public sealed class ImportDeclaration : Statement {
     public readonly string ModuleSpecifier;
-    /// <summary>
-    /// var or func statements.
-    /// </summary>
 
-    public ImportDeclaration(string s) {
+    public ImportDeclaration(string s, int pos, int end) {
         ModuleSpecifier = s;
+        Pos = pos;
+        End = end;
         Kind = SyntaxKind.ImportDeclaration;
     }
 

@@ -1,8 +1,5 @@
 package main
 
-import "xyz"
-
-/*
 struct Book {
     title: string
     years: int[]
@@ -18,15 +15,12 @@ enum AAA {
     Y,
     Z,
 }
-*/
 
-var abc: int = "xyz"
-var abc: string
+var abc: int = 1
 
-/*
 func main() -> int {
-    // a = b;
-    printf("%d", f[1])
+    abc = 4;
+    foo(2, 3);
     return 0
 }
 
@@ -34,4 +28,3 @@ func main() -> int {
 func foo(i: int, j: int) -> int {
     return i + j / 2
 }
-*/

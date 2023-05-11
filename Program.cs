@@ -10,9 +10,9 @@ var expr = (PackageDeclaration)parser.Parse();
 var checker = new Checker(scanner);
 checker.Visit(expr);
 
-// var file = new FileWriter();
-// var emit = new Emitter(file);
-// emit.Visit(expr);
-// file.Close();
+var file = new FileWriter();
+var emit = new Emitter(file);
+emit.Visit(expr);
+file.Close();
 
 Console.WriteLine(">>> OK.");

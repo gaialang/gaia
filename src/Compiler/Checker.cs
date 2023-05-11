@@ -33,11 +33,16 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(ImportDeclaration node) {
+        if (string.IsNullOrWhiteSpace(node.ModuleSpecifier)) {
+            throw new CheckError($"{LineColumn(node.Pos)}: Module specifier is required");
+        }
+
         return null;
     }
 
     public Expression? Visit(Identifier id) {
-        var e = toplevelScope.Get(id.Text) ?? throw new CheckError($"{LineColumn(id.Pos)}: Unknown identifier {id.Text}");
+        var e = toplevelScope.Get(id.Text) ??
+            throw new CheckError($"{LineColumn(id.Pos)}: Unknown identifier `{id.Text}`");
         return e.Type;
     }
 
@@ -155,19 +160,8 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(FunctionDeclaration node) {
-        /*
-        var list = new List<string>();
-        foreach (var item in node.Parameters) {
-            var paramName = item.Name.Accept(this);
-            var paramTypeName = CType(item.Type);
-            list.Add($"{paramTypeName.Prefix} {paramName}{paramTypeName.Suffix}");
-        }
-        var paramsText = string.Join(", ", list);
-
-        var returnTypeName = CType(node.Type);
-        var name = node.Name.Accept(this);
-        node.Body?.Accept(this);
-        */
+        // TODO: handle parameters
+        // node.Body?.Accept(this);
         return null;
     }
 
@@ -192,8 +186,8 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(AssignStatement node) {
-        var name = node.Left.Accept(this);
-        var val = node.Right.Accept(this);
+        var lType = node.Left.Accept(this);
+        var rType = node.Right.Accept(this);
         return null;
     }
 
@@ -257,32 +251,26 @@ public class Checker : Visitor<Expression?> {
 
     public Expression? Visit(ExpressionStatement node) {
         return null;
-
     }
 
     public Expression? Visit(ArrayLiteralExpression node) {
         return null;
-
     }
 
     public Expression? Visit(ArrayType node) {
         return null;
-
     }
 
     public Expression? Visit(IndexedAccessType node) {
         return null;
-
     }
 
     public Expression? Visit(StructDeclaration node) {
         return null;
-
     }
 
     public Expression? Visit(PropertySignature node) {
         return null;
-
     }
 
     public Expression? Visit(InterfaceDeclaration node) {

@@ -11,14 +11,15 @@ public record LineAndCharacter(int Line, int Character);
 public class Scanner {
     private int pos = 0;
     private int end = 0;
+
     // Start position of whitespace before current token
     public int FullStartPos { get; private set; } = 0;
+
     public int TokenStart { get; private set; } = 0;
     public int TokenEnd => pos;
     private string text = "";
     private SourceFile sourceFile;
 
-    public bool IsAtEnd { get; private set; } = false;
     private SyntaxKind token = SyntaxKind.Unknown;
     public TokenFlags TokenFlags { get; private set; } = TokenFlags.None;
     public string TokenValue { get; private set; } = "";
@@ -35,7 +36,7 @@ public class Scanner {
 
     public string LineColumn(int pos) {
         var lineAndCharacter = getLineAndCharacterOfPosition(pos);
-        return $"({lineAndCharacter.Line + 1},{lineAndCharacter.Character + 2})";
+        return $"{lineAndCharacter.Line + 1},{lineAndCharacter.Character + 1}";
     }
 
     public List<int> computeLineStarts(string text) {
