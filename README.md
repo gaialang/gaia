@@ -4,11 +4,11 @@
 
 > Hey! What do you do?
 >
-> I'm a gaiiiaaa developer!
+> I'm a gaiaaaaaa developer!
 
 And whenever you encounter a bug, you can shout out:
 
-> Gaiiiaaa~
+> Gaiaaaaaa~
 
 Pretty cool, right?
 
@@ -18,5 +18,5 @@ generate `C` code or generate `LLIR` using `LLVMSharp`. And it's just a beginnin
 
 ## Getting Started
 
-1. make sure you have .NET 7.0 or above installed.
+1. make sure you have .NET 8.0 or above installed.
 2. run `dotnet run`.
