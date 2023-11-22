@@ -31,4 +31,6 @@ public interface Visitor<TResult> {
     TResult Visit(MethodSignature node);
     TResult Visit(EnumDeclaration node);
     TResult Visit(EnumMember node);
+    TResult Visit(HeritageClause node);
+    TResult Visit(ExpressionWithTypeArguments node);
 }

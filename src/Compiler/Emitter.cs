@@ -32,13 +32,13 @@ public class Emitter : Visitor<string> {
         writer.WriteLine();
 
         // Hoist functions
-        foreach (var stmt in pkg.Statements) {
+        foreach (Statement stmt in pkg.Statements) {
             if (stmt is FunctionDeclaration func) {
                 var name = func.Name.Accept(this);
                 if (name == "main") {
                     continue;
                 }
-                var proto = CFunctionPrototype(func);
+                string proto = CFunctionPrototype(func);
                 writer.WriteLine($"{proto};");
             }
         }
@@ -85,10 +85,11 @@ public class Emitter : Visitor<string> {
     }
 
     private static string CPrimitive(SyntaxKind kind) {
-        if (kind == SyntaxKind.StringKeyword) {
-            return "char*";
-        }
-        return TokenToText[kind];
+        return kind switch {
+            SyntaxKind.StringKeyword => "char*",
+            SyntaxKind.NullKeyword => "NULL",
+            _ => TokenToText[kind],
+        };
     }
 
     private static TypeName CArray(ArrayType node) {

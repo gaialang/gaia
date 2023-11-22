@@ -54,6 +54,7 @@ public enum SyntaxKind {
 
     // Keywords
     IntKeyword,
+    FloatKeyword,
     CharKeyword,
     StringKeyword,
     TrueKeyword,
@@ -81,6 +82,8 @@ public enum SyntaxKind {
     MethodSignature,
     Parameter,
     EnumMember,
+    HeritageClause,
+    ExpressionWithTypeArguments,
 
     // Type
     ArrayType,

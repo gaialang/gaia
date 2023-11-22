@@ -23,6 +23,8 @@ public static class SyntaxKindText {
         {"interface", SyntaxKind.InterfaceKeyword},
         {"void", SyntaxKind.VoidKeyword},
         {"bool", SyntaxKind.BoolKeyword},
+        {"null", SyntaxKind.NullKeyword},
+        {"float", SyntaxKind.FloatKeyword},
     };
 
     public static readonly Dictionary<string, SyntaxKind> TextToToken = TextToKeyword.Union(new Dictionary<string, SyntaxKind>() {

@@ -47,13 +47,13 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(VariableDeclaration node) {
-        var name = node.Name.Text;
+        string name = node.Name.Text;
         if (toplevelScope.ContainsLocal(name)) {
             throw new CheckError($"{LineColumn(node.Name.Pos)}: Variable `{name}` already declared");
         }
 
         if (node.Initializer is not null) {
-            var typ = node.Initializer.Accept(this);
+            Expression? typ = node.Initializer.Accept(this);
             if (!Equals(node.Type, typ)) {
                 throw new CheckError($"{LineColumn(node.Initializer.Pos)}: Type mismatch, expected {TokenToText[node.Type.Kind]} but got {TokenToText[typ!.Kind]}");
             }
@@ -69,61 +69,17 @@ public class Checker : Visitor<Expression?> {
         if (a is null || b is null) {
             return false;
         }
-        if (a is ArrayType && b is ArrayType) {
-
+        if (a is ArrayType at && b is ArrayType bt) {
+            return Equals(at.ElementType, bt.ElementType);
         }
-        if (a is IndexedAccessType && b is IndexedAccessType) {
-
+        if (a is IndexedAccessType ai && b is IndexedAccessType bi) {
+            if (ai.IndexType != bi.IndexType) {
+                return false;
+            }
+            return Equals(ai.ObjectType, bi.ObjectType);
         }
 
         return a.Kind == b.Kind;
-    }
-
-    private static TypeName CType(Expression node) {
-        if (node is ArrayType arr) {
-            return CArray(arr);
-        }
-        if (node is IndexedAccessType acc) {
-            return CIndexedAccess(acc);
-        }
-
-        var prefix = CPrimitive(node.Kind);
-        return new TypeName(prefix);
-    }
-
-    private static string CPrimitive(SyntaxKind kind) {
-        if (kind == SyntaxKind.StringKeyword) {
-            return "char*";
-        }
-        return TokenToText[kind];
-    }
-
-    private static TypeName CArray(ArrayType node) {
-        var sb = new StringBuilder();
-        sb.Insert(0, "[]");
-        var typ = node.ElementType;
-        while (typ is ArrayType arr) {
-            sb.Insert(0, "[]");
-            typ = arr.ElementType;
-        }
-
-        var prefix = CPrimitive(typ.Kind);
-        var suffix = string.Join("", sb);
-        return new TypeName(prefix, suffix);
-    }
-
-    private static TypeName CIndexedAccess(IndexedAccessType node) {
-        var sb = new StringBuilder();
-        sb.Insert(0, $"[{node.IndexType}]");
-        var typ = node.ObjectType;
-        while (typ is IndexedAccessType arr) {
-            sb.Insert(0, $"[{arr.IndexType}]");
-            typ = arr.ObjectType;
-        }
-
-        var prefix = CPrimitive(typ.Kind);
-        var suffix = string.Join("", sb);
-        return new TypeName(prefix, suffix);
     }
 
     public Expression? Visit(UnaryExpression node) {
@@ -139,14 +95,23 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(BinaryExpression node) {
-        var accept = new HashSet<SyntaxKind>() { SyntaxKind.IntKeyword, SyntaxKind.StringKeyword };
-
         var lhs = node.Left.Accept(this);
         var rhs = node.Right.Accept(this);
 
+        if (lhs is null || rhs is null) {
+            throw new CheckError($"{LineColumn(node.Pos)}: Cannot be null");
+        }
+
         switch (node.OperatorToken) {
         case SyntaxKind.PlusToken:
-            if (!accept.Contains(lhs!.Kind) || !accept.Contains(rhs!.Kind)) {
+            var accepts = new HashSet<SyntaxKind> {
+                SyntaxKind.IntKeyword, SyntaxKind.StringKeyword, SyntaxKind.CharKeyword, SyntaxKind.FloatKeyword
+            };
+            if (accepts.Contains(lhs.Kind) || accepts.Contains(rhs.Kind)) {
+                throw new CheckError($"{LineColumn(node.Pos)}: this type is not supported for + operation");
+            }
+
+            if (lhs.Kind == SyntaxKind.IntKeyword) {
                 throw new CheckError("Type mismatch");
             }
             if (!Equals(lhs, rhs)) {

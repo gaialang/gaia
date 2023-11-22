@@ -1,11 +1,11 @@
 package main
 
-struct Book {
+struct Book implements Su {
     title: string
     years: int[]
 }
 
-interface Student {
+interface Su {
     read() -> void
     write(a: string[][]) -> string
 }
