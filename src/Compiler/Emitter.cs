@@ -393,4 +393,12 @@ public class Emitter : Visitor<string> {
         }
         return "";
     }
+
+    public string Visit(HeritageClause node) {
+        return "";
+    }
+
+    public string Visit(ExpressionWithTypeArguments node) {
+        return "";
+    }
 }

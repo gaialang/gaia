@@ -1,6 +1,6 @@
 package main
 
-struct Book implements Su {
+struct Book {
     title: string
     years: int[]
 }

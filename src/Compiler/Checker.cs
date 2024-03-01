@@ -103,23 +103,23 @@ public class Checker : Visitor<Expression?> {
         }
 
         switch (node.OperatorToken) {
-        case SyntaxKind.PlusToken:
-            var accepts = new HashSet<SyntaxKind> {
+            case SyntaxKind.PlusToken:
+                var accepts = new HashSet<SyntaxKind> {
                 SyntaxKind.IntKeyword, SyntaxKind.StringKeyword, SyntaxKind.CharKeyword, SyntaxKind.FloatKeyword
             };
-            if (accepts.Contains(lhs.Kind) || accepts.Contains(rhs.Kind)) {
-                throw new CheckError($"{LineColumn(node.Pos)}: this type is not supported for + operation");
-            }
+                if (accepts.Contains(lhs.Kind) || accepts.Contains(rhs.Kind)) {
+                    throw new CheckError($"{LineColumn(node.Pos)}: this type is not supported for + operation");
+                }
 
-            if (lhs.Kind == SyntaxKind.IntKeyword) {
-                throw new CheckError("Type mismatch");
-            }
-            if (!Equals(lhs, rhs)) {
-                throw new CheckError("Type mismatch for +, lhs and rhs must be same type");
-            }
-            break;
-        default:
-            break;
+                if (lhs.Kind == SyntaxKind.IntKeyword) {
+                    throw new CheckError("Type mismatch");
+                }
+                if (!Equals(lhs, rhs)) {
+                    throw new CheckError("Type mismatch for +, lhs and rhs must be same type");
+                }
+                break;
+            default:
+                break;
         }
         return null;
     }
@@ -127,6 +127,16 @@ public class Checker : Visitor<Expression?> {
     public Expression? Visit(FunctionDeclaration node) {
         // TODO: handle parameters
         // node.Body?.Accept(this);
+        return null;
+    }
+
+    public Expression? Visit(HeritageClause node) {
+        // TODO: heritage clause
+        return null;
+    }
+
+    public Expression? Visit(ExpressionWithTypeArguments node) {
+        // TODO: type
         return null;
     }
 
