@@ -2,6 +2,9 @@ using Gaia.Domain;
 
 namespace Gaia.AST;
 
+/// <summary>
+/// Under consideration.
+/// </summary>
 public sealed class HeritageClause : Expression {
     public HeritageClause(List<ExpressionWithTypeArguments> types, int pos, int end) {
         Types = types;

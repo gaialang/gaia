@@ -1,4 +1,4 @@
-﻿using Gaia.Domain;
+using Gaia.Domain;
 
 namespace Gaia.AST;
 
