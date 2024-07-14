@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="tests\test.ga">
+        <Content Include="tests/test.ga">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
         </Content>

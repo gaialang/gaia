@@ -9,7 +9,7 @@ public sealed class Parser {
 
     private readonly Dictionary<SyntaxKind, int> binaryOperatorPrecedence = new() {
         { SyntaxKind.AsteriskToken, 13 },
-        {SyntaxKind.SlashToken, 13 },
+        { SyntaxKind.SlashToken, 13 },
         { SyntaxKind.PercentToken, 13 },
 
         { SyntaxKind.PlusToken, 12 },
