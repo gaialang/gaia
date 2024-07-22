@@ -1,4 +1,3 @@
-using System.Text;
 using Gaia.AST;
 using Gaia.Domain;
 using static Gaia.Domain.SyntaxKindText;
@@ -18,7 +17,7 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(PackageDeclaration pkg) {
-        // Hoist functions to scope
+        // Hoist functions to scope before type-check statements
         foreach (var stmt in pkg.Statements) {
             if (stmt is FunctionDeclaration func) {
                 var name = func.Name.Text;
@@ -49,19 +48,32 @@ public class Checker : Visitor<Expression?> {
     public Expression? Visit(VariableDeclaration node) {
         string name = node.Name.Text;
         if (toplevelScope.ContainsLocal(name)) {
-            throw new CheckError($"{LineColumn(node.Name.Pos)}: Variable `{name}` already declared");
+            throw new CheckError($"{LineColumn(node.Name.Pos)}: Variable `{name}` already declared.");
         }
 
-        if (node.Initializer is not null) {
-            Expression? typ = node.Initializer.Accept(this);
-            if (!Equals(node.Type, typ)) {
-                throw new CheckError($"{LineColumn(node.Initializer.Pos)}: Type mismatch, expected {TokenToText[node.Type.Kind]} but got {TokenToText[typ!.Kind]}");
+        if (node.Type is not null) {
+            if (node.Initializer is not null) {
+                var rValue = node.Initializer.Accept(this);
+                if (!Equals(node.Type, rValue)) {
+                    throw new CheckError(
+                        $"{LineColumn(node.Initializer.Pos)}: Type mismatch, expected {KindToText(node.Type.Kind)} but got {KindToText(rValue.Kind)}."
+                    );
+                }
+            }
+            toplevelScope.Add(name, new VariableEntity(node.Type));
+        } else {
+            if (node.Initializer is not null) {
+                node.Type = node.Initializer.Accept(this);
+                toplevelScope.Add(name, new VariableEntity(node.Type));
+            } else {
+                throw new CheckError($"{LineColumn(node.Name.Pos)}: Variable `{name}` needs to be initialized.");
             }
         }
-        toplevelScope.Add(name, new VariableEntity(node.Type));
+
         return null;
     }
 
+    // TODO: handle more complicated types
     private bool Equals(Expression? a, Expression? b) {
         if (a is null && b is null) {
             return true;
@@ -69,14 +81,14 @@ public class Checker : Visitor<Expression?> {
         if (a is null || b is null) {
             return false;
         }
-        if (a is ArrayType at && b is ArrayType bt) {
-            return Equals(at.ElementType, bt.ElementType);
+        if (a is ArrayType typeA && b is ArrayType typeB) {
+            return Equals(typeA.ElementType, typeB.ElementType);
         }
-        if (a is IndexedAccessType ai && b is IndexedAccessType bi) {
-            if (ai.IndexType != bi.IndexType) {
+        if (a is IndexedAccessType indexedTypeA && b is IndexedAccessType indexedTypeB) {
+            if (indexedTypeA.IndexType != indexedTypeB.IndexType) {
                 return false;
             }
-            return Equals(ai.ObjectType, bi.ObjectType);
+            return Equals(indexedTypeA.ObjectType, indexedTypeB.ObjectType);
         }
 
         return a.Kind == b.Kind;
@@ -99,7 +111,7 @@ public class Checker : Visitor<Expression?> {
         var rhs = node.Right.Accept(this);
 
         if (lhs is null || rhs is null) {
-            throw new CheckError($"{LineColumn(node.Pos)}: Cannot be null");
+            throw new CheckError($"{LineColumn(node.Pos)}: cannot be null.");
         }
 
         switch (node.OperatorToken) {
@@ -107,25 +119,24 @@ public class Checker : Visitor<Expression?> {
             var accepts = new HashSet<SyntaxKind> {
                 SyntaxKind.IntKeyword, SyntaxKind.StringKeyword, SyntaxKind.CharKeyword, SyntaxKind.FloatKeyword
             };
-            if (accepts.Contains(lhs.Kind) || accepts.Contains(rhs.Kind)) {
-                throw new CheckError($"{LineColumn(node.Pos)}: this type is not supported for + operation");
+            if (!accepts.Contains(lhs.Kind) || !accepts.Contains(rhs.Kind)) {
+                throw new CheckError($"{LineColumn(node.Pos)}: this type is not supported for + operation.");
             }
 
-            if (lhs.Kind == SyntaxKind.IntKeyword) {
-                throw new CheckError("Type mismatch");
-            }
             if (!Equals(lhs, rhs)) {
-                throw new CheckError("Type mismatch for +, lhs and rhs must be same type");
+                throw new CheckError("Type mismatch for +, lhs and rhs must be the same type.");
             }
-            break;
+
+            return new KeywordLikeNode(SyntaxKind.IntKeyword, -1, -1);
         default:
             break;
         }
+
         return null;
     }
 
     public Expression? Visit(FunctionDeclaration node) {
-        // TODO: handle parameters
+        // TODO: add parameters to the local environment, handle parameter type
         // node.Body?.Accept(this);
         return null;
     }
@@ -161,8 +172,8 @@ public class Checker : Visitor<Expression?> {
     }
 
     public Expression? Visit(AssignStatement node) {
-        var lType = node.Left.Accept(this);
-        var rType = node.Right.Accept(this);
+        var lValue = node.Left.Accept(this);
+        var rValue = node.Right.Accept(this);
         return null;
     }
 

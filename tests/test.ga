@@ -16,7 +16,9 @@ enum AAA {
     Z,
 }
 
-var abc: int = 1
+var xyz: int
+var x = 5
+var abc: int = 1 + 1
 
 func main() -> int {
     abc = 4;

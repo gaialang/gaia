@@ -259,17 +259,21 @@ public sealed class Parser {
         ParseExpected(SyntaxKind.Identifier);
         var id = new Identifier(tokenValue, idPos, GetTokenFullStart());
 
-        ParseExpected(SyntaxKind.ColonToken);
-        var typ = ParseType();
+        Expression? typ = null;
+        if (Token() == SyntaxKind.ColonToken) {
+            ParseExpected(SyntaxKind.ColonToken);
+            typ = ParseType();
+        }
 
-        Expression? x = null;
+        Expression? initializer = null;
         if (Token() == SyntaxKind.EqualsToken) {
             ParseExpected(SyntaxKind.EqualsToken);
-            x = ParseExpression();
+            initializer = ParseExpression();
         }
-        var varStmt = new VariableDeclaration(id, typ, x, pos, GetTokenFullStart());
+
+        var varDecl = new VariableDeclaration(id, typ, initializer, pos, GetTokenFullStart());
         ParseSemicolon();
-        return varStmt;
+        return varDecl;
     }
 
     // Get a type for the variable.

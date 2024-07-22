@@ -14,7 +14,7 @@ public sealed class VariableDeclaration : Statement {
 
     public Identifier Name { get; }
     public Expression? Initializer { get; }
-    public Expression Type { get; }
+    public Expression? Type { get; set; }
     public int Pos { get; }
     public int End { get; }
     public SyntaxKind Kind { get; }

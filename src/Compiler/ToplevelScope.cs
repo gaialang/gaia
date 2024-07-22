@@ -25,6 +25,7 @@ public class ToplevelScope {
         return currentScope.Get(s);
     }
 
+    // Get current level of environment only.
     public Entity? GetLocal(string s) {
         return currentScope.GetLocal(s);
     }

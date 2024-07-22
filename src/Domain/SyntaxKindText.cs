@@ -27,7 +27,7 @@ public static class SyntaxKindText {
         {"float", SyntaxKind.FloatKeyword},
     };
 
-    public static readonly Dictionary<string, SyntaxKind> TextToToken = TextToKeyword.Union(new Dictionary<string, SyntaxKind>() {
+    private static readonly Dictionary<string, SyntaxKind> TextToToken = TextToKeyword.Union(new Dictionary<string, SyntaxKind>() {
         {"{", SyntaxKind.OpenBraceToken},
         {"}", SyntaxKind.CloseBraceToken},
         {"(", SyntaxKind.OpenParenToken},
@@ -64,7 +64,15 @@ public static class SyntaxKindText {
         {"%=", SyntaxKind.PercentEqualsToken},
     }).ToDictionary(x => x.Key, x => x.Value);
 
-    public static Dictionary<SyntaxKind, string> MakeReverseMap(Dictionary<string, SyntaxKind> map) => map.ToDictionary(x => x.Value, x => x.Key);
+    private static Dictionary<SyntaxKind, string> MakeReverseMap(Dictionary<string, SyntaxKind> map) => map.ToDictionary(x => x.Value, x => x.Key);
 
-    public static readonly Dictionary<SyntaxKind, string> TokenToText = MakeReverseMap(TextToToken);
+    public static Dictionary<SyntaxKind, string> TokenToText = MakeReverseMap(TextToToken);
+
+    public static string KindToText(SyntaxKind sk) {
+        if (TokenToText.ContainsKey(sk)) {
+            return TokenToText[sk];
+        } else {
+            return sk.ToString();
+        }
+    }
 }

@@ -88,7 +88,7 @@ public class Emitter : Visitor<string> {
         return kind switch {
             SyntaxKind.StringKeyword => "char*",
             SyntaxKind.NullKeyword => "NULL",
-            _ => TokenToText[kind],
+            _ => KindToText(kind),
         };
     }
 
@@ -121,19 +121,19 @@ public class Emitter : Visitor<string> {
     }
 
     public string Visit(UnaryExpression n) {
-        var op = TokenToText[n.Operator];
+        var op = KindToText(n.Operator);
         var operand = n.Operand.Accept(this);
         return $"{op}{operand}";
     }
 
     public string Visit(KeywordLikeNode n) {
-        return TokenToText[n.Kind];
+        return KindToText(n.Kind);
     }
 
     public string Visit(BinaryExpression n) {
         var lhs = n.Left.Accept(this);
         var rhs = n.Right.Accept(this);
-        var op = TokenToText[n.OperatorToken];
+        var op = KindToText(n.OperatorToken);
         return $"{lhs} {op} {rhs}";
     }
 
