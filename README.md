@@ -1,14 +1,14 @@
-﻿# Gaia Programming Language
+# Gaia Programming Language
 
 `Gaia` is pronounced as /ˈgaiə/. I like the sound of that yeah. Imagine having this conversation:
 
 > Hey! What do you do?
 >
-> I'm a gaiaaaaaa developer!
+> I'm a gaiaaaa developer!
 
 And whenever you encounter a bug, you can shout out:
 
-> Gaiaaaaaa~
+> Gaiaaaa~
 
 Pretty cool, right?
 

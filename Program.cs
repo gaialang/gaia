@@ -1,7 +1,7 @@
 using Gaia.AST;
 using Gaia.Compiler;
 
-Console.WriteLine("Gaia 0.1.0 >>>");
+Console.WriteLine("Gaia 0.1 >>>");
 
 var scanner = new Scanner();
 var parser = new Parser(scanner);
